@@ -12,7 +12,8 @@
   ],
   "scripts": {
     "build": "tsc",
-    "serve": "npm run-script build & node dist/app.js"
+    "start": "node dist/app.js",
+    "serve": "npm build & npm start"
   },
   "devDependencies": {
     "@types/node": "^16.4.13",
