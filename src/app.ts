@@ -32,6 +32,6 @@ async function replyWithTimetable(ctx : Context.Context, dateDelta?: number) {
 	if (!dateDelta) dateDelta = 0;
 
 	getTimetable(process.env.GROUP_ID as string, process.env.PERIOD_ID as string, dateDelta!).then((lessons : string[]) => {
-		ctx.reply(`${delta[dateDelta! + 1]} ${days[new Date().getDay() + dateDelta!]}: \n` + lessons.join("\n"));
+		ctx.reply(`${delta[dateDelta! + 1]} ${days[new Date().getDay() + dateDelta!]}: \n\n` + lessons.join("\n\n"));
 	});
 }
