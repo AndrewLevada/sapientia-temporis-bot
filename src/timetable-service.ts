@@ -8,6 +8,7 @@ let hashedVersionRef!: Reference;
 let subjectsRef!: Reference;
 let roomsRef!: Reference;
 let scheduleRef!: Reference;
+let exchangeRef!: Reference;
 
 let subjects: any | null;
 let rooms: any | null;
@@ -42,6 +43,7 @@ export function init() {
 	subjectsRef = db.ref("subjects");
 	roomsRef = db.ref("rooms");
 	scheduleRef = db.ref("schedule");
+	exchangeRef = db.ref("exchange");
 
 	subjectsRef.on('value', snapshot => { subjects = snapshot.val() });
 	roomsRef.on('value', snapshot => { rooms = snapshot.val() });
@@ -72,12 +74,20 @@ function updateHashedData(version: string): Promise<void> {
 			const rawData : string = (res.data as string).split("var NIKA=\r\n")[1].split(";")[0];
 			const data = JSON.parse(rawData);
 
+			let exchangeCopy: any = {};
+			for (const group of Object.keys(data["CLASS_EXCHANGE"])) {
+				exchangeCopy[group] = {};
+				for (const [dateKey, dateValue] of Object.entries(data["CLASS_EXCHANGE"][group]))
+					exchangeCopy[group][dateKey.replace(/\./g, "-")] = dateValue;
+			}
+
 			Promise.all([
 				hashPromise,
-				subjectsRef.set(data['SUBJECTS']),
-				roomsRef.set(data['ROOMS']),
-				scheduleRef.set(data['CLASS_SCHEDULE'])])
-				.then(() => resolve());
+				subjectsRef.set(data["SUBJECTS"]),
+				roomsRef.set(data["ROOMS"]),
+				scheduleRef.set(data["CLASS_SCHEDULE"]),
+				exchangeRef.set(exchangeCopy)
+			]).then(() => resolve());
 		});
 
 		resolve();
@@ -86,14 +96,30 @@ function updateHashedData(version: string): Promise<void> {
 
 function constructTimetable(group: string, period: string, dateDelta: number): Promise<string[]> {
 	return new Promise<string[]>(resolve => {
-		const day: number = (new Date()).getDay() + dateDelta;
+		const now = new Date();
 
-		scheduleRef.child(`${period}/${group}`).once('value').then(s => {
-			const sVal = s.val();
+		let day: number = now.getDay() + dateDelta;
+		if (day === -1) day = 6;
+		else if (day === 7) day = 0;
+
+		const date = new Date(now.valueOf() + dateDelta * (24 * 60 * 60 * 1000));
+		const dateString: string = `${date.getDate() < 10 ? "0" : ""}${date.getDate()}-${date.getMonth() < 9 ? "0" : ""}${date.getMonth() + 1}-${date.getFullYear()}`;
+		Promise.all([
+			scheduleRef.child(`${period}/${group}`).once('value'),
+			exchangeRef.child(`${group}/${dateString}`).once('value'),
+		]).then(([scheduleSnapshot, exchangeSnapshot]) => {
+			const schedule = scheduleSnapshot.val();
+			const exchange = exchangeSnapshot.val();
 			const result : string[] = [];
+
 			for (let j = 6; j > 0; j--) {
 				const index : string[] = [getLessonIndex(day, j * 2), getLessonIndex(day, j * 2 - 1)];
-				const lessons : (Lesson | undefined)[] = [sVal[index[0]], sVal[index[1]]];
+				const lessons : (Lesson | undefined)[] = [schedule[index[0]], schedule[index[1]]];
+
+				if (exchange) {
+					lessons[0] = mutateExchange(lessons[0], j * 2, exchange);
+					lessons[1] = mutateExchange(lessons[1], j * 2 - 1, exchange);
+				}
 
 				if (lessons[0]?.s[0] === lessons[1]?.s[0]) {
 					if (lessons[0] || result.length > 0)
@@ -138,6 +164,14 @@ function getLessonText(lesson: Lesson | undefined, type: LessonType, i: number):
 function getLessonNumber(type: LessonType, i: number): string {
 	if (type === "pair") return `${Math.floor(i / 2)} пара` ;
 	return `${i} урок`;
+}
+
+function mutateExchange(lesson: Lesson | undefined, index: number, exchange: any): Lesson | undefined {
+	if (!lesson) return undefined;
+	const rule: any = exchange[index.toString()];
+	if (!rule) return lesson;
+	if (rule.s === "F") return undefined;
+	return rule;
 }
 
 type LessonType = "lesson" | "pair";
