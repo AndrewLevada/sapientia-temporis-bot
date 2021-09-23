@@ -2,6 +2,7 @@ import axios from 'axios';
 import { database } from 'firebase-admin';
 import Reference = database.Reference;
 import Database = database.Database;
+import { getDayOfWeekWithDelta } from './utils';
 
 let db! : Database;
 let hashedVersionRef!: Reference;
@@ -94,15 +95,12 @@ function updateHashedData(version: string): Promise<void> {
 	});
 }
 
-function constructTimetable(group: string, period: string, dateDelta: number): Promise<string[]> {
+function constructTimetable(group: string, period: string, dayDelta: number): Promise<string[]> {
 	return new Promise<string[]>(resolve => {
 		const now = new Date();
+		const day = getDayOfWeekWithDelta(dayDelta);
 
-		let day: number = now.getDay() + dateDelta;
-		if (day === -1) day = 6;
-		else if (day === 7) day = 0;
-
-		const date = new Date(now.valueOf() + dateDelta * (24 * 60 * 60 * 1000));
+		const date = new Date(now.valueOf() + dayDelta * (24 * 60 * 60 * 1000));
 		const dateString: string = `${date.getDate() < 10 ? "0" : ""}${date.getDate()}-${date.getMonth() < 9 ? "0" : ""}${date.getMonth() + 1}-${date.getFullYear()}`;
 		Promise.all([
 			scheduleRef.child(`${period}/${group}`).once('value'),
