@@ -1,9 +1,9 @@
-import { Context, Telegraf } from 'telegraf';
+import { Context, Markup, Telegraf } from 'telegraf';
 import { init as initTimetableService, getTimetable } from './timetable-service';
 import * as admin from 'firebase-admin';
 import { getDayOfWeekWithDelta } from './utils';
 import { groups } from './groups';
-import { init as initUserService, getUserGroup, setUserGroup } from './user-service';
+import { init as initUserService, getUserGroup, setUserGroup, getUsersCount } from './user-service';
 
 const delta = ['Вчера','Сегодня','Завтра'];
 const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
@@ -31,7 +31,7 @@ function run() {
 		ctx.reply('Привет! Я буду давать тебе актуальное расписание Лицея 50 при ДГТУ').then(() => changeGroup(ctx))
 	});
 
-	bot.help((ctx) => ctx.reply('Бот расписаний Лицея 50 при ДГТУ. Сделал @not_hello_world. Команды: /yesterday , /today , /tomorrow'));
+	bot.help((ctx) => ctx.reply('Бот расписаний Лицея 50 при ДГТУ. Сделал @not_hello_world. Команды: \n/yesterday \n/today \n/tomorrow \n/changeGroup \n/population'));
 
 	bot.on('text', (ctx, next) => {
 		const userId: string = ctx.message.chat.id.toString();
@@ -39,7 +39,7 @@ function run() {
 			const group = ctx.message.text.toLowerCase().replace(' ', '');
 			if (groups[group]) setUserGroup(userId, groups[group]).then(() => {
 				if (sessions[userId]) sessions[userId].state = 'normal';
-				ctx.reply('Отлично! Расписание на сегодня:');
+				ctx.reply('Отлично! Расписание на сегодня:', Markup.keyboard(['/today', '/tomorrow', '/yesterday']).resize());
 				replyWithTimetable(ctx).then();
 			});
 			else ctx.reply('Некорректный класс! Повтори ввод');
@@ -50,6 +50,14 @@ function run() {
 	bot.command('tomorrow', (ctx) => replyWithTimetable(ctx, 1));
 	bot.command('yesterday', (ctx) => replyWithTimetable(ctx, -1));
 	bot.command('changeGroup', (ctx) => changeGroup(ctx));
+
+	bot.command('population', (ctx) => {
+		getUsersCount().then(count => ctx.reply(`Население нашего королевства: ${count} humans`))
+	});
+
+	bot.on('text', ctx => {
+		ctx.reply('Для получения информации /help', Markup.keyboard(['/today', '/tomorrow', '/yesterday']).resize())
+	});
 
 	bot.launch().then(() => {});
 }

@@ -20,3 +20,9 @@ export function getUserGroup(userId: string): Promise<string> {
 		usersRef.child(`${userId}/group`).get().then(snapshot => resolve(snapshot.val()));
 	});
 }
+
+export function getUsersCount(): Promise<number> {
+	return new Promise<number>(resolve => {
+		usersRef.once('value').then(snapshot => resolve(snapshot.numChildren()));
+	});
+}
