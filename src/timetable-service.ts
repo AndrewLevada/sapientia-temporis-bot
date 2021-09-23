@@ -3,8 +3,8 @@ import { database } from 'firebase-admin';
 import Reference = database.Reference;
 import Database = database.Database;
 import { getDayOfWeekWithDelta } from './utils';
+import { isGroupWithPairs } from './groups';
 
-let db! : Database;
 let hashedVersionRef!: Reference;
 let subjectsRef!: Reference;
 let roomsRef!: Reference;
@@ -39,7 +39,8 @@ const lessonTimes: string[][] = [
 ]
 
 export function init() {
-	db = database();
+	const db: Database = database();
+
 	hashedVersionRef = db.ref("hashed_version");
 	subjectsRef = db.ref("subjects");
 	roomsRef = db.ref("rooms");
@@ -119,7 +120,7 @@ function constructTimetable(group: string, period: string, dayDelta: number): Pr
 					lessons[1] = mutateExchange(lessons[1], j * 2 - 1, exchange);
 				}
 
-				if (lessons[0]?.s[0] === lessons[1]?.s[0]) {
+				if (isGroupWithPairs(group) && lessons[0]?.s[0] === lessons[1]?.s[0]) {
 					if (lessons[0] || result.length > 0)
 						result.push(getLessonText(lessons[0], "pair", j * 2));
 				} else {
