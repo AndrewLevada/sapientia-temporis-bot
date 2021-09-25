@@ -52,7 +52,7 @@ function run() {
 	bot.hears('Завтра', (ctx) => replyWithTimetableForDelta(ctx, 1));
 	bot.hears('Вчера', (ctx) => replyWithTimetableForDelta(ctx, -1));
 
-	bot.hears('На день недели', (ctx) => ctx.reply('Выберите день недели', getDayAwareWeekKeybord()));
+	bot.hears('На день недели', (ctx) => ctx.reply('Выберите день недели', getDayAwareWeekKeyboard()));
 	bot.hears(workWeek.map(v => new RegExp(`${v}( \(Сегодня\))?`)), (ctx) =>
 		replyWithTimetableForDay(ctx, week.indexOf(ctx.message.text.split(' ')[0])));
 
@@ -106,7 +106,7 @@ async function replyWithTimetableForDay(ctx : Context, day: number) {
 	});
 }
 
-function getDayAwareWeekKeybord(): any {
+function getDayAwareWeekKeyboard(): any {
 	const buttons = [['Понедельник', 'Вторник'], ['Среда', 'Четверг'], ['Пятница', 'Суббота']];
 	const day = getDayOfWeekWithDelta(0) - 1;
 	buttons[Math.floor(day / 2)][day % 2] += ' (Сегодня)';
