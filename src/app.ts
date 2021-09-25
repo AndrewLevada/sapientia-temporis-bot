@@ -8,10 +8,9 @@ import { init as initUserService, getUserGroup, setUserGroup, getUsersCount } fr
 const delta = ['Вчера','Сегодня','Завтра'];
 const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
 
-const serviceAccount = require('../serviceAccountKey.json');
 admin.initializeApp({
-	credential: admin.credential.cert(serviceAccount),
-	databaseURL: "https://sapientia-temporis-bot-default-rtdb.europe-west1.firebasedatabase.app"
+	credential: admin.credential.cert(JSON.parse(Buffer.from(process.env.FIREBASE_CONFIG as string, 'base64').toString('ascii'))),
+	databaseURL: process.env.FIREBASE_DATABASE_URL as string,
 });
 
 interface SessionData {
