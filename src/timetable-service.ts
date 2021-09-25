@@ -2,7 +2,6 @@ import axios from 'axios';
 import { database } from 'firebase-admin';
 import Reference = database.Reference;
 import Database = database.Database;
-import { getDayOfWeekWithDelta } from './utils';
 import { isGroupWithPairs } from './groups';
 
 let hashedVersionRef!: Reference;
@@ -51,9 +50,14 @@ export function init() {
 	roomsRef.on('value', snapshot => { rooms = snapshot.val() });
 }
 
-export function getTimetable(group: string, period: string, dateDelta: number): Promise<string[]> {
-	return new Promise<string[]>(resolve => {
-		validateHashedData().then(() => constructTimetable(group, period, dateDelta)).then(resolve);
+export interface DateTimetable {
+	lessons: string[];
+	date: Date;
+}
+
+export function getTimetable(group: string, period: string, date: Date): Promise<DateTimetable> {
+	return new Promise<DateTimetable>(resolve => {
+		validateHashedData().then(() => constructTimetable(group, period, date)).then(resolve);
 	});
 }
 
@@ -96,13 +100,10 @@ function updateHashedData(version: string): Promise<void> {
 	});
 }
 
-function constructTimetable(group: string, period: string, dayDelta: number): Promise<string[]> {
-	return new Promise<string[]>(resolve => {
-		const now = new Date();
-		const day = getDayOfWeekWithDelta(dayDelta);
-
-		const date = new Date(now.valueOf() + dayDelta * (24 * 60 * 60 * 1000));
+function constructTimetable(group: string, period: string, date: Date): Promise<DateTimetable> {
+	return new Promise<DateTimetable>(resolve => {
 		const dateString: string = `${date.getDate() < 10 ? "0" : ""}${date.getDate()}-${date.getMonth() < 9 ? "0" : ""}${date.getMonth() + 1}-${date.getFullYear()}`;
+
 		Promise.all([
 			scheduleRef.child(`${period}/${group}`).once('value'),
 			exchangeRef.child(`${group}/${dateString}`).once('value'),
@@ -112,7 +113,7 @@ function constructTimetable(group: string, period: string, dayDelta: number): Pr
 			const result : string[] = [];
 
 			for (let j = 6; j > 0; j--) {
-				const index : string[] = [getLessonIndex(day, j * 2), getLessonIndex(day, j * 2 - 1)];
+				const index : string[] = [getLessonIndex(date.getDay(), j * 2), getLessonIndex(date.getDay(), j * 2 - 1)];
 				const lessons : (Lesson | undefined)[] = [schedule[index[0]], schedule[index[1]]];
 
 				if (exchange) {
@@ -131,8 +132,8 @@ function constructTimetable(group: string, period: string, dayDelta: number): Pr
 				}
 			}
 
-			if (result.length === 0) resolve(["Нет пар"]);
-			resolve(result.reverse());
+			if (result.length === 0) resolve({ lessons: ["Нет пар"], date });
+			resolve({ lessons: result.reverse(), date });
 		});
 	});
 }

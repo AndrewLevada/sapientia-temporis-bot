@@ -1,12 +1,13 @@
 import { Context, Markup, Telegraf } from 'telegraf';
-import { init as initTimetableService, getTimetable } from './timetable-service';
+import { init as initTimetableService, getTimetable, DateTimetable } from './timetable-service';
 import * as admin from 'firebase-admin';
-import { getDayOfWeekWithDelta } from './utils';
+import { dateToSimpleString, getDayOfWeekWithDelta } from './utils';
 import { groups } from './groups';
 import { init as initUserService, getUserGroup, setUserGroup, getUsersCount } from './user-service';
 
 const delta = ['Вчера','Сегодня','Завтра'];
-const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+const workWeek = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+const week = ['Воскресенье', ...workWeek];
 
 admin.initializeApp({
 	credential: admin.credential.cert(JSON.parse(Buffer.from(process.env.FIREBASE_CONFIG as string, 'base64').toString('ascii'))),
@@ -14,10 +15,12 @@ admin.initializeApp({
 });
 
 interface SessionData {
-	state?: 'start' | 'normal';
+	state?: 'changingGroup' | 'normal';
 }
 
 const sessions: Record<string, SessionData> = {};
+
+const defaultKeyboard = Markup.keyboard([['Сегодня'], ['Вчера', 'Завтра'], ['На день недели']]).resize();
 
 initTimetableService();
 initUserService();
@@ -25,7 +28,6 @@ run();
 
 function run() {
 	const bot = new Telegraf(process.env.API_KEY as string);
-	const defaultKeyboard = Markup.keyboard([['Сегодня'], ['Вчера', 'Завтра'], ['На день недели']]).resize();
 
 	bot.start((ctx) => {
 		ctx.reply('Привет! Я буду давать тебе актуальное расписание Лицея 50 при ДГТУ').then(() => changeGroup(ctx))
@@ -35,20 +37,26 @@ function run() {
 
 	bot.on('text', (ctx, next) => {
 		const userId: string = ctx.message.chat.id.toString();
-		if (sessions[userId] && sessions[userId].state === "start") {
+		if (sessions[userId] && sessions[userId].state === 'changingGroup') {
 			const group = ctx.message.text.toLowerCase().replace(' ', '');
 			if (groups[group]) setUserGroup(userId, groups[group]).then(() => {
 				if (sessions[userId]) sessions[userId].state = 'normal';
 				ctx.reply('Отлично! Расписание на сегодня:', defaultKeyboard);
-				replyWithTimetable(ctx).then();
+				replyWithTimetableForDelta(ctx, 0).then();
 			});
 			else ctx.reply('Некорректный класс! Повтори ввод');
 		} else next();
 	});
 
-	bot.hears('Сегодня', (ctx) => replyWithTimetable(ctx));
-	bot.hears('Завтра', (ctx) => replyWithTimetable(ctx, 1));
-	bot.hears('Вчера', (ctx) => replyWithTimetable(ctx, -1));
+	bot.hears('Сегодня', (ctx) => replyWithTimetableForDelta(ctx, 0));
+	bot.hears('Завтра', (ctx) => replyWithTimetableForDelta(ctx, 1));
+	bot.hears('Вчера', (ctx) => replyWithTimetableForDelta(ctx, -1));
+
+	bot.hears('На день недели', (ctx) => ctx.reply('Выберите день недели', getDayAwareWeekKeybord()));
+	bot.hears(workWeek.map(v => new RegExp(`${v}( \(Сегодня\))?`)), (ctx) =>
+		replyWithTimetableForDay(ctx, week.indexOf(ctx.message.text.split(' ')[0])));
+
+	bot.hears('Титаник', (ctx) => ctx.replyWithPhoto("https://github.com/AndrewLevada/sapientia-temporis-bot/raw/main/assets/titanik.jpg"));
 
 	bot.command('changeGroup', (ctx) => changeGroup(ctx));
 
@@ -63,9 +71,7 @@ function run() {
 	bot.launch().then(() => {});
 }
 
-async function replyWithTimetable(ctx : Context, dayDelta?: number) {
-	if (!dayDelta) dayDelta = 0;
-
+async function replyWithTimetableForDelta(ctx : Context, dayDelta: number) {
 	if (!ctx.message) return;
 
 	getUserGroup(ctx.message.chat.id.toString()).then(group => {
@@ -74,15 +80,42 @@ async function replyWithTimetable(ctx : Context, dayDelta?: number) {
 			return;
 		}
 
-		getTimetable(group, process.env.PERIOD_ID as string, dayDelta!).then((lessons : string[]) => {
-			ctx.reply(`${delta[dayDelta! + 1]} ${days[getDayOfWeekWithDelta(dayDelta!)]}: \n\n${lessons.join("\n\n")}`);
+		const now = new Date();
+		const day = getDayOfWeekWithDelta(dayDelta);
+		const date = new Date(now.valueOf() + (day - now.getDay()) * (24 * 60 * 60 * 1000));
+		getTimetable(group, process.env.PERIOD_ID as string, date).then((timetable: DateTimetable) => {
+			ctx.reply(`${delta[dayDelta + 1]} ${week[day]}: \n\n${timetable.lessons.join("\n\n")}`);
 		})
 	});
+}
+
+async function replyWithTimetableForDay(ctx : Context, day: number) {
+	if (!ctx.message) return;
+
+	getUserGroup(ctx.message.chat.id.toString()).then(group => {
+		if (!group) {
+			changeGroup(ctx);
+			return;
+		}
+
+		const now = new Date();
+		const date = new Date(now.valueOf() + (day - now.getDay()) * (24 * 60 * 60 * 1000) + (day < now.getDay() ? (7 * 24 * 60 * 60 * 1000) : 0));
+		getTimetable(group, process.env.PERIOD_ID as string, date).then((timetable: DateTimetable) => {
+			ctx.reply(`${week[day]} (${dateToSimpleString(timetable.date)}): \n\n${timetable.lessons.join("\n\n")}`, defaultKeyboard);
+		})
+	});
+}
+
+function getDayAwareWeekKeybord(): any {
+	const buttons = [['Понедельник', 'Вторник'], ['Среда', 'Четверг'], ['Пятница', 'Суббота']];
+	const day = getDayOfWeekWithDelta(0) - 1;
+	buttons[Math.floor(day / 2)][day % 2] += ' (Сегодня)';
+	return Markup.keyboard(buttons);
 }
 
 function changeGroup(ctx: { message: any } & Context): void {
 	const userId: string = ctx.message.chat.id.toString();
 	ctx.reply('В каком классе ты учишься?').then();
-	if (!sessions[userId]) sessions[userId] = { state: 'start' };
-	else sessions[userId].state = 'start';
+	if (!sessions[userId]) sessions[userId] = { state: 'changingGroup' };
+	else sessions[userId].state = 'changingGroup';
 }
