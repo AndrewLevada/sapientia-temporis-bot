@@ -25,12 +25,13 @@ run();
 
 function run() {
 	const bot = new Telegraf(process.env.API_KEY as string);
+	const defaultKeyboard = Markup.keyboard([['Сегодня'], ['Вчера', 'Завтра'], ['На день недели']]).resize();
 
 	bot.start((ctx) => {
 		ctx.reply('Привет! Я буду давать тебе актуальное расписание Лицея 50 при ДГТУ').then(() => changeGroup(ctx))
 	});
 
-	bot.help((ctx) => ctx.reply('Бот расписаний Лицея 50 при ДГТУ. Сделал @not_hello_world. Команды: \n/yesterday \n/today \n/tomorrow \n/changeGroup \n/population'));
+	bot.help((ctx) => ctx.reply('Бот расписаний Лицея 50 при ДГТУ. Сделал @not_hello_world. Дополнительные команды: \n/changeGroup \n/population'));
 
 	bot.on('text', (ctx, next) => {
 		const userId: string = ctx.message.chat.id.toString();
@@ -38,16 +39,17 @@ function run() {
 			const group = ctx.message.text.toLowerCase().replace(' ', '');
 			if (groups[group]) setUserGroup(userId, groups[group]).then(() => {
 				if (sessions[userId]) sessions[userId].state = 'normal';
-				ctx.reply('Отлично! Расписание на сегодня:', Markup.keyboard(['/today', '/tomorrow', '/yesterday']).resize());
+				ctx.reply('Отлично! Расписание на сегодня:', defaultKeyboard);
 				replyWithTimetable(ctx).then();
 			});
 			else ctx.reply('Некорректный класс! Повтори ввод');
 		} else next();
 	});
 
-	bot.command('today', (ctx) => replyWithTimetable(ctx));
-	bot.command('tomorrow', (ctx) => replyWithTimetable(ctx, 1));
-	bot.command('yesterday', (ctx) => replyWithTimetable(ctx, -1));
+	bot.hears('Сегодня', (ctx) => replyWithTimetable(ctx));
+	bot.hears('Завтра', (ctx) => replyWithTimetable(ctx, 1));
+	bot.hears('Вчера', (ctx) => replyWithTimetable(ctx, -1));
+
 	bot.command('changeGroup', (ctx) => changeGroup(ctx));
 
 	bot.command('population', (ctx) => {
@@ -55,7 +57,7 @@ function run() {
 	});
 
 	bot.on('text', ctx => {
-		ctx.reply('Для получения информации /help', Markup.keyboard(['/today', '/tomorrow', '/yesterday']).resize())
+		ctx.reply('Для получения информации /help', defaultKeyboard)
 	});
 
 	bot.launch().then(() => {});
