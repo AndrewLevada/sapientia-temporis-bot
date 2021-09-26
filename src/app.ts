@@ -109,6 +109,7 @@ async function replyWithTimetableForDay(ctx : Context, day: number) {
 function getDayAwareWeekKeyboard(): any {
 	const buttons = [['Понедельник', 'Вторник'], ['Среда', 'Четверг'], ['Пятница', 'Суббота']];
 	const day = getDayOfWeekWithDelta(0) - 1;
+	if (day === -1) return Markup.keyboard(buttons);
 	buttons[Math.floor(day / 2)][day % 2] += ' (Сегодня)';
 	return Markup.keyboard(buttons);
 }
