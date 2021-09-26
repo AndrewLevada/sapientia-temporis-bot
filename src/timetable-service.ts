@@ -2,7 +2,7 @@ import axios from 'axios';
 import { database } from 'firebase-admin';
 import Reference = database.Reference;
 import Database = database.Database;
-import { isGroupWithPairs } from './groups';
+import { isGroupUpper, isGroupWithPairs } from './groups';
 
 let hashedVersionRef!: Reference;
 let subjectsRef!: Reference;
@@ -19,7 +19,7 @@ const pairTimes: string[][] = [
 	["11:25", "12:55"],
 	["13:00", "14:30"],
 	["14:40", "16:10"],
-]
+];
 
 const lessonTimes: string[][] = [
 	["8:00", "8:40"],
@@ -31,11 +31,29 @@ const lessonTimes: string[][] = [
 	["13:05", "13:45"],
 	["13:55", "14:35"],
 	["14:50", "15:30"],
-	["15:35", "16:15"],
-	["16:20", "17:00"],
-	["17:05", "17:45"],
-	["17:50", "18:30"],
-]
+	["15:40", "16:20"],
+	["16:25", "17:05"],
+	["17:10", "17:50"],
+	["17:55", "18:35"],
+];
+
+type LessonType = "lesson" | "pair";
+
+interface Lesson {
+	s: string[];
+	r: string[];
+	g?: string[];
+}
+
+export interface Timetable {
+	schedule: any;
+	exchange?: any;
+}
+
+export interface DateTimetable {
+	lessons: string[];
+	date: Date;
+}
 
 export function init() {
 	const db: Database = database();
@@ -48,11 +66,6 @@ export function init() {
 
 	subjectsRef.on('value', snapshot => { subjects = snapshot.val() });
 	roomsRef.on('value', snapshot => { rooms = snapshot.val() });
-}
-
-export interface DateTimetable {
-	lessons: string[];
-	date: Date;
 }
 
 export function getTimetable(group: string, period: string, date: Date): Promise<DateTimetable> {
@@ -108,29 +121,18 @@ function constructTimetable(group: string, period: string, date: Date): Promise<
 			scheduleRef.child(`${period}/${group}`).once('value'),
 			exchangeRef.child(`${group}/${dateString}`).once('value'),
 		]).then(([scheduleSnapshot, exchangeSnapshot]) => {
-			const schedule = scheduleSnapshot.val();
-			const exchange = exchangeSnapshot.val();
-			const result : string[] = [];
+			const timetable: Timetable = {
+				schedule: scheduleSnapshot.val(),
+				exchange: exchangeSnapshot.val()
+			};
 
-			for (let j = 6; j > 0; j--) {
-				const index : string[] = [getLessonIndex(date.getDay(), j * 2), getLessonIndex(date.getDay(), j * 2 - 1)];
-				const lessons : (Lesson | undefined)[] = [schedule[index[0]], schedule[index[1]]];
+			let result : string[];
+			if (isGroupWithPairs(group))
+				result = getLessonsAsPairs(timetable, group, date);
+			else result = getLessons(timetable, group, date);
 
-				if (exchange) {
-					lessons[0] = mutateExchange(lessons[0], j * 2, exchange);
-					lessons[1] = mutateExchange(lessons[1], j * 2 - 1, exchange);
-				}
-
-				if (isGroupWithPairs(group) && lessons[0]?.s[0] === lessons[1]?.s[0]) {
-					if (lessons[0] || result.length > 0)
-						result.push(getLessonText(lessons[0], "pair", j * 2));
-				} else {
-					if (lessons[0] || lessons[1] || result.length > 0)
-						result.push(getLessonText(lessons[0], "lesson", j * 2));
-					if (lessons[1] || result.length > 0)
-						result.push(getLessonText(lessons[1], "lesson", j * 2 - 1));
-				}
-			}
+			if (isGroupUpper(group) && result.length > 0)
+				removeEmptyAtStart(result);
 
 			if (result.length === 0) resolve({ lessons: ["Нет пар"], date });
 			resolve({ lessons: result.reverse(), date });
@@ -138,8 +140,59 @@ function constructTimetable(group: string, period: string, date: Date): Promise<
 	});
 }
 
+function getLessonsAsPairs(timetable: Timetable, group: string, date: Date): string[] {
+	const result : string[] = [];
+
+	for (let j = 6; j > 0; j--) {
+		const index : string[] = [getLessonIndex(date.getDay(), j * 2), getLessonIndex(date.getDay(), j * 2 - 1)];
+		const lessons : (Lesson | undefined)[] = [timetable.schedule[index[0]], timetable.schedule[index[1]]];
+
+		if (timetable.exchange) {
+			lessons[0] = mutateExchange(lessons[0], j * 2, timetable.exchange);
+			lessons[1] = mutateExchange(lessons[1], j * 2 - 1, timetable.exchange);
+		}
+
+		if (lessons[0]?.s[0] === lessons[1]?.s[0]) {
+			if (lessons[0] || result.length > 0)
+				result.push(getLessonText(lessons[0], "pair", j * 2));
+		} else {
+			if (lessons[0] || lessons[1] || result.length > 0)
+				result.push(getLessonText(lessons[0], "lesson", j * 2));
+			if (lessons[1] || result.length > 0)
+				result.push(getLessonText(lessons[1], "lesson", j * 2 - 1));
+		}
+	}
+
+	return result;
+}
+
+function getLessons(timetable: Timetable, group: string, date: Date): string[] {
+	const result : string[] = [];
+
+	for (let i = 12; i > 0; i--) {
+		const index : string = getLessonIndex(date.getDay(), i);
+		let lesson : Lesson | undefined = timetable.schedule[index];
+
+		if (timetable.exchange)
+			lesson = mutateExchange(lesson, i, timetable.exchange);
+
+		if (lesson || result.length > 0)
+			result.push(getLessonText(lesson, "lesson", i));
+	}
+
+	return result;
+}
+
 function getLessonIndex(day: number, i: number): string {
 	return `${day}${i < 10 ? "0" : ""}${i}`;
+}
+
+function mutateExchange(lesson: Lesson | undefined, index: number, exchange: any): Lesson | undefined {
+	if (!lesson) return undefined;
+	const rule: any = exchange[index.toString()];
+	if (!rule) return lesson;
+	if (rule.s === "F") return undefined;
+	return rule;
 }
 
 function getLessonText(lesson: Lesson | undefined, type: LessonType, i: number): string {
@@ -166,18 +219,7 @@ function getLessonNumber(type: LessonType, i: number): string {
 	return `${i} урок`;
 }
 
-function mutateExchange(lesson: Lesson | undefined, index: number, exchange: any): Lesson | undefined {
-	if (!lesson) return undefined;
-	const rule: any = exchange[index.toString()];
-	if (!rule) return lesson;
-	if (rule.s === "F") return undefined;
-	return rule;
-}
-
-type LessonType = "lesson" | "pair";
-
-interface Lesson {
-	s: string[];
-	r: string[];
-	g?: string[];
+function removeEmptyAtStart(lessons: string[]): void {
+	while (lessons[lessons.length - 1].endsWith("Окно"))
+		lessons.splice(lessons.length - 1, 1);
 }

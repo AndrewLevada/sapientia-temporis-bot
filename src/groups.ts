@@ -1,7 +1,13 @@
 // noinspection NonAsciiCharacters
 
 export function isGroupWithPairs(group: string): boolean {
+	// Only 10th and 11th
 	return +group >= 42;
+}
+
+export function isGroupUpper(group: string): boolean {
+	// Only 6th and 7th
+	return +group >= 28 && +group <= 35;
 }
 
 export const groups: Record<string, string> = {
