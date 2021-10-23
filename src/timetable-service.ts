@@ -85,40 +85,35 @@ export function getTimetable(info: UserInfo, date: Date): Promise<DateTimetable>
 }
 
 function validateHashedData(): Promise<void> {
-	return new Promise(resolve => {
-		axios.get("http://raspisanie.nikasoft.ru/check/47307204.html").then(checkRes => {
-			hashedVersionRef.once('value').then(data => {
-				if (data.val() as string === checkRes.data as string) resolve();
-				else updateHashedData(checkRes.data as string).then(resolve);
-			});
-		});
+	return Promise.all([
+		axios.get("http://raspisanie.nikasoft.ru/check/47307204.html").then(res => res.data as string),
+		hashedVersionRef.once('value').then(snap => snap.val() as string),
+	]).then(([currentVersion, cachedVersion]) => {
+		if (cachedVersion === currentVersion) return;
+		return updateHashedData(currentVersion);
 	});
 }
 
 function updateHashedData(version: string): Promise<void> {
-	return new Promise(resolve => {
-		const hashPromise = hashedVersionRef.set(version);
+	const hashPromise = hashedVersionRef.set(version);
 
-		axios.get(`http://raspisanie.nikasoft.ru/static/public/${version}`).then(res => {
-			const rawData : string = (res.data as string).split("var NIKA=\r\n")[1].split(";")[0];
-			const data = JSON.parse(rawData);
+	return axios.get(`http://raspisanie.nikasoft.ru/static/public/${version}`).then(res => {
+		const rawData : string = (res.data as string).split("var NIKA=\r\n")[1].split(";")[0];
+		const data = JSON.parse(rawData);
 
-			Promise.all([
-				hashPromise,
-				subjectsRef.set(data["SUBJECTS"]),
-				roomsRef.set(data["ROOMS"]),
-				scheduleRef.set(data["CLASS_SCHEDULE"]),
-				exchangeRef.set(makeCorrectCopyOfExchange(data["CLASS_EXCHANGE"])),
-				teacherScheduleRef.set(data["TEACH_SCHEDULE"]),
-				teacherExchangeRef.set(makeCorrectCopyOfExchange(data["TEACH_EXCHANGE"])),
-			]).then(() => resolve());
-		});
-
-		resolve();
+		return Promise.all([
+			hashPromise,
+			subjectsRef.set(data["SUBJECTS"]),
+			roomsRef.set(data["ROOMS"]),
+			scheduleRef.set(data["CLASS_SCHEDULE"]),
+			exchangeRef.set(correctExchangeDatesFormat(data["CLASS_EXCHANGE"])),
+			teacherScheduleRef.set(data["TEACH_SCHEDULE"]),
+			teacherExchangeRef.set(correctExchangeDatesFormat(data["TEACH_EXCHANGE"])),
+		]).then(() => {});
 	});
 }
 
-function makeCorrectCopyOfExchange(data: any): any {
+function correctExchangeDatesFormat(data: any): any {
 	let copy: any = {};
 	for (const group of Object.keys(data)) {
 		copy[group] = {};
@@ -129,36 +124,32 @@ function makeCorrectCopyOfExchange(data: any): any {
 }
 
 function constructTimetable(info: UserInfo, date: Date): Promise<DateTimetable> {
-	return new Promise<DateTimetable>(resolve => {
-		const dateString: string = `${date.getDate() < 10 ? "0" : ""}${date.getDate()}-${date.getMonth() < 9 ? "0" : ""}${date.getMonth() + 1}-${date.getFullYear()}`;
+	const dateString: string = `${date.getDate() < 10 ? "0" : ""}${date.getDate()}-${date.getMonth() < 9 ? "0" : ""}${date.getMonth() + 1}-${date.getFullYear()}`;
 
-		Promise.all([
-			(info.type === "teacher" ? teacherScheduleRef : scheduleRef).child(`${process.env.PERIOD_ID as string}/${info.group}`).once('value'),
-			(info.type === "teacher" ? teacherExchangeRef : exchangeRef).child(`${info.group}/${dateString}`).once('value'),
-		]).then(([scheduleSnapshot, exchangeSnapshot]) => {
-			const timetable: Timetable = {
-				schedule: scheduleSnapshot.val(),
-				exchange: exchangeSnapshot.val()
-			};
+	return Promise.all([
+		(info.type === "teacher" ? teacherScheduleRef : scheduleRef).child(`${process.env.PERIOD_ID as string}/${info.group}`).once('value'),
+		(info.type === "teacher" ? teacherExchangeRef : exchangeRef).child(`${info.group}/${dateString}`).once('value'),
+	]).then(([scheduleSnapshot, exchangeSnapshot]) => {
+		const timetable: Timetable = {
+			schedule: scheduleSnapshot.val(),
+			exchange: exchangeSnapshot.val()
+		};
 
-			let result : string[] = [];
+		let result : string[];
 
-			if (info.type === "student") {
-				if (isGroupWithPairs(info.group))
-					result = getLessonsAsPairs(timetable, info.type, date);
-				else result = getLessons(timetable, info.type, date);
+		if (info.type === "student") {
+			if (isGroupWithPairs(info.group))
+				result = getLessonsAsPairs(timetable, info.type, date);
+			else result = getLessons(timetable, info.type, date);
 
-				if (isGroupUpper(info.group) && result.length > 0)
-					removeEmptyAtStart(result);
-			}
+			if (isGroupUpper(info.group) && result.length > 0)
+				removeEmptyAtStart(result);
+		} else {
+			result = getLessonsAsPairs(timetable, info.type, date);
+		}
 
-			if (info.type === "teacher") {
-
-			}
-
-			if (result.length === 0) resolve({ lessons: ["Свободный день"], date });
-			resolve({ lessons: result.reverse(), date });
-		});
+		if (result.length === 0) return { lessons: ["Свободный день"], date };
+		return { lessons: result.reverse(), date };
 	});
 }
 
