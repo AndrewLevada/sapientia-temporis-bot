@@ -9,20 +9,21 @@ export function init() {
 	usersRef = db.ref("users");
 }
 
-export function setUserGroup(userId: string, group: string): Promise<void> {
-	return new Promise<void>(resolve => {
-		usersRef.child(userId).set({group}).then(resolve);
-	});
+export interface UserInfo {
+	type: UserType;
+	group: string;
 }
 
-export function getUserGroup(userId: string): Promise<string> {
-	return new Promise<string>(resolve => {
-		usersRef.child(`${userId}/group`).get().then(snapshot => resolve(snapshot.val()));
-	});
+export type UserType = "student" | "teacher";
+
+export function setUserInfo(userId: string, info: UserInfo): Promise<void> {
+	return usersRef.child(userId).set(info);
+}
+
+export function getUserInfo(userId: string): Promise<UserInfo> {
+	return usersRef.child(`${userId}`).get().then(snapshot => snapshot.val());
 }
 
 export function getUsersCount(): Promise<number> {
-	return new Promise<number>(resolve => {
-		usersRef.once('value').then(snapshot => resolve(snapshot.numChildren()));
-	});
+	return usersRef.once('value').then(snapshot => snapshot.numChildren());
 }
