@@ -2,7 +2,7 @@ import axios from 'axios';
 import { database } from 'firebase-admin';
 import Reference = database.Reference;
 import Database = database.Database;
-import { groups, isGroupUpper, isGroupWithPairs } from './groups';
+import { inverseGroups, isGroupUpper, isGroupWithPairs } from './groups';
 import { UserInfo, UserType } from './user-service';
 
 let hashedVersionRef!: Reference;
@@ -22,13 +22,14 @@ const pairTimes: string[][] = [
 	["11:25", "12:55"],
 	["13:00", "14:30"],
 	["14:40", "16:10"],
+	["16:25", "17:50"],
 ];
 
 const lessonTimes: string[][] = [
 	["8:00", "8:40"],
 	["8:50", "9:30"],
 	["9:45", "10:25"],
-	["10:30", "11:15"],
+	["10:35", "11:15"],
 	["11:25", "12:05"],
 	["12:20", "13:00"],
 	["13:05", "13:45"],
@@ -41,6 +42,7 @@ const lessonTimes: string[][] = [
 ];
 
 type LessonType = "lesson" | "pair";
+type Lesson = StudentLesson | TeacherLesson;
 
 interface StudentLesson {
 	s: string[];
@@ -71,8 +73,8 @@ export function init() {
 	hashedVersionRef = db.ref("hashed_version");
 	subjectsRef = db.ref("subjects");
 	roomsRef = db.ref("rooms");
-	scheduleRef = db.ref("student_schedule");
-	exchangeRef = db.ref("student_exchange");
+	scheduleRef = db.ref("schedule");
+	exchangeRef = db.ref("exchange");
 	teacherScheduleRef = db.ref("teacher_schedule");
 	teacherExchangeRef = db.ref("teacher_exchange");
 
@@ -158,14 +160,14 @@ function getLessonsAsPairs(timetable: Timetable, type: UserType, date: Date): st
 
 	for (let j = 6; j > 0; j--) {
 		const index : string[] = [getLessonIndex(date.getDay(), j * 2), getLessonIndex(date.getDay(), j * 2 - 1)];
-		const lessons : (StudentLesson | undefined)[] = [timetable.schedule[index[0]], timetable.schedule[index[1]]];
+		const lessons : (Lesson | undefined)[] = [timetable.schedule[index[0]], timetable.schedule[index[1]]];
 
 		if (timetable.exchange) {
 			lessons[0] = mutateExchange(lessons[0], j * 2, timetable.exchange);
 			lessons[1] = mutateExchange(lessons[1], j * 2 - 1, timetable.exchange);
 		}
 
-		if (lessons[0]?.s[0] === lessons[1]?.s[0]) {
+		if (isPair(type, lessons)) {
 			if (lessons[0] || result.length > 0)
 				result.push(getLessonText(lessons[0], "pair", j * 2, type));
 		} else {
@@ -179,12 +181,19 @@ function getLessonsAsPairs(timetable: Timetable, type: UserType, date: Date): st
 	return result;
 }
 
+function isPair(type: UserType, lessons: (Lesson | undefined)[]): boolean {
+	const [a, b] = [lessons[0], lessons[1]];
+	if (type === "student") return a?.s[0] === b?.s[0]
+	const [ac, bc] = [(a as TeacherLesson)?.c, (b as TeacherLesson)?.c];
+	return ac === bc || (!!ac && !!bc && ac[0] === bc[0]);
+}
+
 function getLessons(timetable: Timetable, type: UserType, date: Date): string[] {
 	const result : string[] = [];
 
 	for (let i = 12; i > 0; i--) {
 		const index : string = getLessonIndex(date.getDay(), i);
-		let lesson : StudentLesson | undefined = timetable.schedule[index];
+		let lesson : Lesson | undefined = timetable.schedule[index];
 
 		if (timetable.exchange)
 			lesson = mutateExchange(lesson, i, timetable.exchange);
@@ -200,7 +209,7 @@ function getLessonIndex(day: number, i: number): string {
 	return `${day}${i < 10 ? "0" : ""}${i}`;
 }
 
-function mutateExchange(lesson: StudentLesson | undefined, index: number, exchange: any): StudentLesson | undefined {
+function mutateExchange(lesson: Lesson | undefined, index: number, exchange: any): Lesson | undefined {
 	if (!lesson) return undefined;
 	const rule: any = exchange[index.toString()];
 	if (!rule) return lesson;
@@ -208,37 +217,36 @@ function mutateExchange(lesson: StudentLesson | undefined, index: number, exchan
 	return rule;
 }
 
-function getLessonText(lesson: StudentLesson | TeacherLesson | undefined, lessonType: LessonType, i: number, userType: UserType): string {
+function getLessonText(lesson: Lesson | undefined, lessonType: LessonType, i: number, userType: UserType): string {
 	if (userType === "student") return getStudentLessonText(lesson as StudentLesson, lessonType, i);
 	return getTeacherLessonText(lesson as TeacherLesson, lessonType, i);
 }
 
 function getStudentLessonText(lesson: StudentLesson | undefined, type: LessonType, i: number): string {
-	if (!lesson) return `${getLessonNumber(type, i)}) Окно`;
+	if (!lesson) return `${getLessonNumber(type, i)}\\) Окно`;
 
-	const subject = subjects[lesson.s[0]];
-	const room = rooms[lesson.r[0]];
+	const subject = subjects[lesson.s[0]] || "?";
+	const room = rooms[lesson.r[0]] || "?";
 	const roomMore = lesson.g ? ` и ${rooms[lesson.r[1]]}` : '';
 	const timeArray = getLessonTimeArray(i, type);
 
-	let text = `${getLessonNumber(type, i)}) ${subject}\n`;
+	let text = `${getLessonNumber(type, i)}\\) ${subject}\n`;
 	text += `🕐 ${timeArray[0]} — ${timeArray[1]}\n`;
 	text += `🚪 ${room}${roomMore}`;
 	return text;
 }
 
 function getTeacherLessonText(lesson: TeacherLesson | undefined, type: LessonType, i: number): string {
-	if (!lesson) return `${getLessonNumber(type, i)}) Окно`;
-	if (lesson.s === "M") return `${getLessonNumber(type, i)}) Методический час`;
+	if (!lesson) return `${getLessonNumber(type, i)}\\) Окно`;
+	if (lesson.s === "M") return `${getLessonNumber(type, i)}\\) Методический час`;
 
-	const subject = subjects[lesson.s];
-	const group = lesson.c ? groups[lesson.c[0]] : "неизвестный класс";
-	const room = lesson.r ? rooms[lesson.r] : "Неопознано";
+	const subject = subjects[lesson.s] || "?";
+	const group = lesson.c ? inverseGroups[lesson.c[0]].toUpperCase() : "?";
+	const room = lesson.r ? rooms[lesson.r] || "?" : "?";
 	const timeArray = getLessonTimeArray(i, type);
 
-	let text = `${getLessonNumber(type, i)}) ${group} - ${subject}\n`;
-	text += `🕐 ${timeArray[0]} — ${timeArray[1]}\n`;
-	text += `🚪 ${room}`;
+	let text = `${getLessonNumber(type, i)}\\) *${group}* \\- ${subject}\n`;
+	text += `🕐 ${timeArray[0]} — ${timeArray[1]} в ${room} каб\\.`;
 	return text;
 }
 
@@ -250,9 +258,9 @@ function getLessonNumber(type: LessonType, i: number): string {
 function getLessonTimeArray(i: number, type: LessonType): string[] {
 	let timeArray: string[] = [];
 	if (type === "pair")
-		timeArray = pairTimes[Math.floor(i / 2) - 1];
+		timeArray = pairTimes[Math.floor(i / 2) - 1] || ["?", "?"];
 	else if (type === "lesson")
-		timeArray = lessonTimes[i - 1];
+		timeArray = lessonTimes[i - 1] || ["?", "?"];
 	return timeArray;
 }
 

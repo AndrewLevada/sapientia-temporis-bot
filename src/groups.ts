@@ -11,8 +11,9 @@ export function isGroupUpper(group: string): boolean {
 }
 
 export function searchForTeacher(s: string): { fullName: string; code: string; } | null {
-	for (const t of Object.entries(teachers)) {
-		if (t[0].includes(s)) {
+	const a = Object.entries(teachers);
+	for (const t of a) {
+		if (t[0].toLowerCase().includes(s.toLowerCase())) {
 			return {
 				fullName: t[0],
 				code: t[1],
@@ -76,6 +77,9 @@ export const groups: Record<string, string> = {
 	"11г": "050",
 	"11д": "051"
 }
+
+export const inverseGroups: Record<string, string> = {};
+Object.entries(groups).forEach(([name, code]) => { inverseGroups[code] = name; });
 
 export const teachers: Record<string, string> = {
 	"Архипова Е.А.": "000",

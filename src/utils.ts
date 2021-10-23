@@ -6,5 +6,5 @@ export function getDayOfWeekWithDelta(dateDelta: number) {
 }
 
 export function dateToSimpleString(date: Date): string {
-	return `${date.getDate() < 10 ? '0' : ''}${date.getDate()}.${date.getMonth() + 1 < 10 ? '0' : ''}${date.getMonth() + 1}`
+	return `${date.getDate() < 10 ? '0' : ''}${date.getDate()}\\.${date.getMonth() + 1 < 10 ? '0' : ''}${date.getMonth() + 1}`
 }
