@@ -127,7 +127,7 @@ async function replyWithTimetableForDelta(ctx : Context, dayDelta: number) {
 		const now = new Date();
 		const day = getDayOfWeekWithDelta(dayDelta);
 		const date = new Date(now.valueOf() + (day - now.getDay()) * (24 * 60 * 60 * 1000));
-		getTimetable(info.group, process.env.PERIOD_ID as string, date).then((timetable: DateTimetable) => {
+		getTimetable(info.group, date).then((timetable: DateTimetable) => {
 			ctx.reply(`${delta[dayDelta + 1]} ${week[day]}: \n\n${timetable.lessons.join("\n\n")}`);
 		})
 	});
@@ -145,7 +145,7 @@ async function replyWithTimetableForDay(ctx : Context, day: number) {
 
 		const now = new Date();
 		const date = new Date(now.valueOf() + (day - now.getDay()) * (24 * 60 * 60 * 1000) + (day < now.getDay() ? (7 * 24 * 60 * 60 * 1000) : 0));
-		getTimetable(info.group, process.env.PERIOD_ID as string, date).then((timetable: DateTimetable) => {
+		getTimetable(info.group, date).then((timetable: DateTimetable) => {
 			ctx.reply(`${week[day]} (${dateToSimpleString(timetable.date)}): \n\n${timetable.lessons.join("\n\n")}`, defaultKeyboard);
 		})
 	});
