@@ -27,3 +27,15 @@ export function getUserInfo(userId: string): Promise<UserInfo> {
 export function getUsersCount(): Promise<number> {
 	return usersRef.once('value').then(snapshot => snapshot.numChildren());
 }
+
+export function getUsersTop(): Promise<Record<string, number>> {
+	return usersRef.orderByChild("type").equalTo("student").once("value").then(snapshot => {
+		const top: Record<string, number> = {};
+		snapshot.forEach(userSnap => {
+			const { group }: UserInfo = userSnap.val();
+			if (top[group]) top[group] += 1;
+			else top[group] = 1;
+		});
+		return top;
+	});
+}

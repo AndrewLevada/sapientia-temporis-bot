@@ -2,8 +2,15 @@ import { Context, Markup, Telegraf } from 'telegraf';
 import { init as initTimetableService, getTimetable, DateTimetable } from './timetable-service';
 import * as admin from 'firebase-admin';
 import { dateToSimpleString, getDayOfWeekWithDelta } from './utils';
-import { groups, searchForTeacher } from './groups';
-import { init as initUserService, getUsersCount, getUserInfo, setUserInfo, UserType } from './user-service';
+import { groups, inverseGroups, searchForTeacher } from './groups';
+import {
+	init as initUserService,
+	getUsersCount,
+	getUserInfo,
+	setUserInfo,
+	UserType,
+	getUsersTop
+} from './user-service';
 import { CallbackQuery } from "typegram/callback";
 
 const delta = ['Вчера','Сегодня','Завтра'];
@@ -100,8 +107,7 @@ function run() {
 
 	bot.hears('Настройки', (ctx) => ctx.reply('Настройки', settingsKeyboard));
 	bot.on('callback_query', (ctx) => {
-		if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "population")
-			getUsersCount().then(count => ctx.reply(`Население нашего королевства: ${count} humans`));
+		if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "population") replyWithGroupsTop(ctx);
 		else if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "group") changeUserInfo(ctx)
 	});
 
@@ -147,6 +153,13 @@ async function replyWithTimetableForDay(ctx : Context, day: number) {
 			ctx.replyWithMarkdownV2(`${week[day]} \\(${dateToSimpleString(timetable.date)}\\): \n\n${timetable.lessons.join("\n\n")}`, defaultKeyboard);
 		})
 	});
+}
+
+function replyWithGroupsTop(ctx: Context) {
+	Promise.all([getUsersTop(), getUsersCount()]).then(([top, count]) => {
+		const leaderboard = Object.entries(top).sort((a, b) => b[1] - a[1]);
+		ctx.replyWithMarkdownV2(`Население нашего королевства: ${count} humans \n\n👑 ${leaderboard.map(v => `*${inverseGroups[v[0]]}* \\- ${v[1]}`).join("\n")}`);
+	})
 }
 
 function getDayAwareWeekKeyboard(): any {
