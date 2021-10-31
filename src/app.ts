@@ -9,7 +9,7 @@ import {
 	getUserInfo,
 	setUserInfo,
 	UserType,
-	getUsersTop
+	getUsersLeaderboard
 } from './user-service';
 import { CallbackQuery } from "typegram/callback";
 
@@ -156,8 +156,7 @@ async function replyWithTimetableForDay(ctx : Context, day: number) {
 }
 
 function replyWithGroupsTop(ctx: Context) {
-	Promise.all([getUsersTop(), getUsersCount()]).then(([top, count]) => {
-		const leaderboard = Object.entries(top).sort((a, b) => b[1] - a[1]);
+	Promise.all([getUsersLeaderboard(), getUsersCount()]).then(([leaderboard, count]) => {
 		ctx.replyWithMarkdownV2(`Население нашего королевства: ${count} humans \n\n👑 ${leaderboard.map(v => `*${inverseGroups[v[0]]}* \\- ${v[1]}`).join("\n")}`);
 	})
 }
