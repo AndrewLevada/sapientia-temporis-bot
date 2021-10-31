@@ -7,6 +7,8 @@ let usersRef!: Reference;
 export function init() {
 	const db: Database = database();
 	usersRef = db.ref("users");
+
+
 }
 
 export interface UserInfo {
