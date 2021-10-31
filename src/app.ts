@@ -29,8 +29,8 @@ interface SessionData {
 
 const sessions: Record<string, SessionData> = {};
 
-const defaultKeyboard = Markup.keyboard([['Сегодня'], ['Вчера', 'Завтра'], ['На день недели', 'Настройки']]).resize();
-const settingsKeyboard = Markup.inlineKeyboard([[{ text: 'Рейтинг классов', callback_data: 'population' }], [{ text: 'Сменить класс', callback_data: 'group' }]]);
+const defaultKeyboard = Markup.keyboard([['Сегодня'], ['Вчера', 'Завтра'], ['На день недели', '✨ Дополнительно']]).resize();
+const settingsKeyboard = Markup.inlineKeyboard([[{ text: 'Рейтинг классов', callback_data: 'population' }], [{ text: 'Настроить расписание', callback_data: 'group' }]]);
 const userTypeKeyboard = Markup.keyboard(['Учусь', 'Преподаю']).resize();
 
 initTimetableService();
@@ -105,7 +105,7 @@ function run() {
 	bot.hears(workWeek.map(v => new RegExp(`${v}( \(Сегодня\))?`)), (ctx) =>
 		replyWithTimetableForDay(ctx, week.indexOf(ctx.message.text.split(' ')[0])));
 
-	bot.hears('Настройки', (ctx) => ctx.reply('Настройки', settingsKeyboard));
+	bot.hears('✨ Дополнительно', (ctx) => ctx.reply('Настройки', settingsKeyboard));
 	bot.on('callback_query', (ctx) => {
 		if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "population") replyWithGroupsTop(ctx);
 		else if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "group") changeUserInfo(ctx)
