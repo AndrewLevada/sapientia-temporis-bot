@@ -4,6 +4,7 @@ import * as admin from 'firebase-admin';
 import { dateToSimpleString, getDayOfWeekWithDelta } from './utils';
 import { groups, searchForTeacher } from './groups';
 import { init as initUserService, getUsersCount, getUserInfo, setUserInfo, UserType } from './user-service';
+import { CallbackQuery } from "typegram/callback";
 
 const delta = ['Вчера','Сегодня','Завтра'];
 const workWeek = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
@@ -21,8 +22,9 @@ interface SessionData {
 
 const sessions: Record<string, SessionData> = {};
 
-const defaultKeyboard = Markup.keyboard([['Сегодня'], ['Вчера', 'Завтра'], ['На день недели']]).resize();
-const userTypeKeyboard = Markup.keyboard(["Учусь", "Преподаю"]).resize();
+const defaultKeyboard = Markup.keyboard([['Сегодня'], ['Вчера', 'Завтра'], ['На день недели', 'Настройки']]).resize();
+const settingsKeyboard = Markup.inlineKeyboard([[{ text: 'Рейтинг классов', callback_data: 'population' }], [{ text: 'Сменить класс', callback_data: 'group' }]]);
+const userTypeKeyboard = Markup.keyboard(['Учусь', 'Преподаю']).resize();
 
 initTimetableService();
 initUserService();
@@ -32,10 +34,10 @@ function run() {
 	const bot = new Telegraf(process.env.API_KEY as string);
 
 	bot.start((ctx) => {
-		ctx.reply('Доброе утро! Я умею показывать актуальное расписание Лицея 50 при ДГТУ').then(() => changeUserInfo(ctx))
+		ctx.reply('Доброе утро! Я умею показывать актуальное расписание Лицея 50 при ДГТУ').then(() => changeUserInfo(ctx as any))
 	});
 
-	bot.help((ctx) => ctx.reply('Бот расписаний Лицея 50 при ДГТУ. Сделал @not_hello_world. Дополнительные команды: \n/settings \n/population'));
+	bot.help((ctx) => ctx.reply('Бот расписаний Лицея 50 при ДГТУ. Сделал @not_hello_world. '));
 
 	bot.on('text', (ctx, next) => {
 		const userId: string = ctx.message.chat.id.toString();
@@ -96,19 +98,18 @@ function run() {
 	bot.hears(workWeek.map(v => new RegExp(`${v}( \(Сегодня\))?`)), (ctx) =>
 		replyWithTimetableForDay(ctx, week.indexOf(ctx.message.text.split(' ')[0])));
 
-	bot.hears('Титаник', (ctx) => ctx.replyWithPhoto("https://github.com/AndrewLevada/sapientia-temporis-bot/raw/main/assets/titanik.jpg"));
-
-	bot.command('settings', (ctx) => changeUserInfo(ctx));
-
-	bot.command('population', (ctx) => {
-		getUsersCount().then(count => ctx.reply(`Население нашего королевства: ${count} humans`))
+	bot.hears('Настройки', (ctx) => ctx.reply('Настройки', settingsKeyboard));
+	bot.on('callback_query', (ctx) => {
+		if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "population")
+			getUsersCount().then(count => ctx.reply(`Население нашего королевства: ${count} humans`));
+		else if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "group") changeUserInfo(ctx)
 	});
 
 	bot.on('text', ctx => {
 		ctx.reply('Для получения информации /help', defaultKeyboard)
 	});
 
-	bot.launch().then(() => {});
+	bot.launch().then();
 }
 
 async function replyWithTimetableForDelta(ctx : Context, dayDelta: number) {
@@ -156,8 +157,8 @@ function getDayAwareWeekKeyboard(): any {
 	return Markup.keyboard(buttons);
 }
 
-function changeUserInfo(ctx: { message: any } & Context): void {
-	const userId: string = ctx.message.chat.id.toString();
+function changeUserInfo(ctx: { message?: any } & { update?: { callback_query?: any }} & Context): void {
+	const userId: string = (ctx.message || ctx.update.callback_query.message).chat.id.toString();
 	ctx.reply('Чем вы занимаетесь в лицее?', userTypeKeyboard).then();
 	if (!sessions[userId]) sessions[userId] = { state: 'change-type' };
 	else sessions[userId].state = 'change-type';
