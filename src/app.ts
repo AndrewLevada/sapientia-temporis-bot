@@ -44,7 +44,7 @@ function run() {
 		ctx.reply('Доброе утро! Я умею показывать актуальное расписание Лицея 50 при ДГТУ').then(() => changeUserInfo(ctx as any))
 	});
 
-	bot.help((ctx) => ctx.reply('Бот расписаний Лицея 50 при ДГТУ. Сделал @not_hello_world. '));
+	bot.help((ctx) => ctx.reply('Бот расписаний Лицея 50 при ДГТУ. При возникновении проблем писать @not_hello_world'));
 
 	bot.on('text', (ctx, next) => {
 		const userId: string = ctx.message.chat.id.toString();
@@ -158,6 +158,7 @@ async function replyWithTimetableForDay(ctx : Context, day: number) {
 function replyWithGroupsTop(ctx: Context) {
 	Promise.all([getUsersLeaderboard(), getUsersCount()]).then(([leaderboard, count]) => {
 		ctx.replyWithMarkdownV2(`Население нашего королевства: ${count} humans \n\n👑 ${leaderboard.map(v => `*${inverseGroups[v[0]]}* \\- ${v[1]}`).join("\n")}`);
+		ctx.reply("Обязательно показывай бота друзьям и однокласникам, чтобы им тоже было удобно смотреть расписание");
 	})
 }
 
