@@ -23,7 +23,7 @@ export function setUserInfo(userId: string, info: UserInfo): Promise<void> {
 	const userRef = usersRef.child(userId);
 	return userRef.once("value").then(snap => {
 		const user: UserInfo = snap.val();
-		if (user.group && user.type === "student") removeUserSnapFromTop(user.group);
+		if (user && user.group && user.type === "student") removeUserSnapFromTop(user.group);
 		if (info.type === "student") addUserSnapToTop(info.group);
 	}).then(() => userRef.set(info));
 }
