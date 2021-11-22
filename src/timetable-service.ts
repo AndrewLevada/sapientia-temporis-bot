@@ -191,7 +191,7 @@ function isPair(type: UserType, lessons: (Lesson | undefined)[]): boolean {
 function getLessons(timetable: Timetable, type: UserType, date: Date): string[] {
 	const result : string[] = [];
 
-	for (let i = 12; i > 0; i--) {
+	for (let i = 13; i > 0; i--) {
 		const index : string = getLessonIndex(date.getDay(), i);
 		let lesson : Lesson | undefined = timetable.schedule[index];
 
