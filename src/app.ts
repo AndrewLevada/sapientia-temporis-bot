@@ -1,7 +1,7 @@
 import { Context, Markup, Telegraf } from 'telegraf';
 import { init as initTimetableService, getTimetable, DateTimetable } from './timetable-service';
 import * as admin from 'firebase-admin';
-import { dateToSimpleString, getDayOfWeekWithDelta } from './utils';
+import { dateToSimpleString, getDayOfWeekWithDelta, getUserIdFromCtx } from './utils';
 import { groups, inverseGroups, searchForTeacher } from './groups';
 import {
 	init as initUserService,
@@ -12,6 +12,7 @@ import {
 	getUsersLeaderboard
 } from './user-service';
 import { CallbackQuery } from "typegram/callback";
+import { logEvent } from './analytics-service';
 
 const delta = ['Вчера','Сегодня','Завтра'];
 const workWeek = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
@@ -71,13 +72,20 @@ function run() {
 			const group = ctx.message.text.toLowerCase().replace(' ', '');
 
 			if (sessions[userId].type === "student") {
-				if (groups[group])
-					setUserInfo(userId, { type: "student", group: groups[group] }).then(() => {
+				if (groups[group]) {
+					logEvent({
+						userId: getUserIdFromCtx(ctx as Context),
+						name: "group_change",
+						params: { type: "student", group },
+					});
+
+					setUserInfo(userId, {type: "student", group: groups[group]}).then(() => {
 						sessions[userId].state = 'normal';
 						delete sessions[userId].type;
 						ctx.reply('Отлично! Расписание на сегодня:', defaultKeyboard);
 						replyWithTimetableForDelta(ctx, 0).then();
 					});
+				}
 				else ctx.reply('Некорректный класс! Повтори ввод');
 			} else if (sessions[userId].type === "teacher") {
 				const t = searchForTeacher(group);
@@ -85,6 +93,12 @@ function run() {
 					ctx.reply('Преподаватель не найден! Повторите ввод');
 					return;
 				}
+
+				logEvent({
+					userId: getUserIdFromCtx(ctx as Context),
+					name: "group_change",
+					params: { type: "teacher", group: t.fullName },
+				});
 
 				setUserInfo(userId, { type: "teacher", group: t.code }).then(() => {
 					sessions[userId].state = 'normal';
@@ -121,6 +135,12 @@ function run() {
 async function replyWithTimetableForDelta(ctx : Context, dayDelta: number) {
 	if (!ctx.message) return;
 
+	logEvent({
+		userId: getUserIdFromCtx(ctx),
+		name: "timetable_view",
+		params: { type: "delta", dayDelta },
+	});
+
 	getUserInfo(ctx.message.chat.id.toString()).then(info => {
 		if (!info || !info.type || !info.group) {
 			ctx.reply("Бот обновился! Теперь мне нужны дополнительные данные :)");
@@ -140,6 +160,12 @@ async function replyWithTimetableForDelta(ctx : Context, dayDelta: number) {
 async function replyWithTimetableForDay(ctx : Context, day: number) {
 	if (!ctx.message) return;
 
+	logEvent({
+		userId: getUserIdFromCtx(ctx),
+		name: "timetable_view",
+		params: { type: "week", day },
+	});
+
 	getUserInfo(ctx.message.chat.id.toString()).then(info => {
 		if (!info || !info.type || !info.group) {
 			ctx.reply("Бот обновился! Теперь мне нужны дополнительные данные :)");
@@ -156,6 +182,11 @@ async function replyWithTimetableForDay(ctx : Context, day: number) {
 }
 
 function replyWithGroupsTop(ctx: Context) {
+	logEvent({
+		userId: getUserIdFromCtx(ctx),
+		name: "leaderboard_view"
+	});
+
 	Promise.all([getUsersLeaderboard(), getUsersCount()]).then(([leaderboard, count]) => {
 		ctx.replyWithMarkdownV2(`Население нашего королевства: ${count} humans \n\n👑 ${leaderboard.map(v => `*${inverseGroups[v[0]]}* \\- ${v[1]}`).join("\n")}`);
 		ctx.reply("Обязательно показывай бота друзьям и однокласникам, чтобы им тоже было удобно смотреть расписание");
@@ -171,7 +202,7 @@ function getDayAwareWeekKeyboard(): any {
 }
 
 function changeUserInfo(ctx: { message?: any } & { update?: { callback_query?: any }} & Context): void {
-	const userId: string = (ctx.message || ctx.update.callback_query.message).chat.id.toString();
+	const userId: string = getUserIdFromCtx(ctx);
 	ctx.reply('Чем вы занимаетесь в лицее?', userTypeKeyboard).then();
 	if (!sessions[userId]) sessions[userId] = { state: 'change-type' };
 	else sessions[userId].state = 'change-type';
