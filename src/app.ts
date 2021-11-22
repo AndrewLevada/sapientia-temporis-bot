@@ -1,8 +1,8 @@
 import { Context, Markup, Telegraf } from 'telegraf';
-import { init as initTimetableService, getTimetable, DateTimetable } from './timetable-service';
+import { init as initTimetableService, getTimetable, DateTimetable } from './services/timetable-service';
 import * as admin from 'firebase-admin';
 import { dateToSimpleString, getDayOfWeekWithDelta, getUserIdFromCtx } from './utils';
-import { groups, inverseGroups, searchForTeacher } from './groups';
+import { groups, inverseGroups, searchForTeacher } from './services/groups-service';
 import {
 	init as initUserService,
 	getUsersCount,
@@ -10,9 +10,9 @@ import {
 	setUserInfo,
 	UserType,
 	getUsersLeaderboard
-} from './user-service';
+} from './services/user-service';
 import { CallbackQuery } from "typegram/callback";
-import { logEvent } from './analytics-service';
+import { logEvent } from './services/analytics-service';
 
 const delta = ['Вчера','Сегодня','Завтра'];
 const workWeek = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];

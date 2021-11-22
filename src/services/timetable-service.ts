@@ -2,7 +2,7 @@ import axios from 'axios';
 import { database } from 'firebase-admin';
 import Reference = database.Reference;
 import Database = database.Database;
-import { inverseGroups, isGroupUpper, isGroupWithPairs } from './groups';
+import { inverseGroups, isGroupUpper, isGroupWithPairs } from './groups-service';
 import { UserInfo, UserType } from './user-service';
 
 let hashedVersionRef!: Reference;
