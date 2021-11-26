@@ -12,7 +12,7 @@ import {
 	getUsersLeaderboard
 } from './services/user-service';
 import { CallbackQuery } from "typegram/callback";
-import { logEvent } from './services/analytics-service';
+import { logEvent, logPageView, logUserGroupChange } from './services/analytics-service';
 
 const delta = ['Вчера','Сегодня','Завтра'];
 const workWeek = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
@@ -42,17 +42,27 @@ run();
 function run() {
 	const bot = new Telegraf(process.env.API_KEY as string);
 
-	bot.start((ctx) => {
-		ctx.reply('Доброе утро! Я умею показывать актуальное расписание Лицея 50 при ДГТУ').then(() => changeUserInfo(ctx as any))
+	bot.on("text", (ctx, next) => {
+		logPageView({
+			userId: getUserIdFromCtx(ctx as Context),
+			title: ctx.message.text,
+			url: "/text",
+		});
+		next();
 	});
 
-	bot.help((ctx) => ctx.reply('Бот расписаний Лицея 50 при ДГТУ. При возникновении проблем писать @not_hello_world'));
+	bot.start((ctx: Context) => {
+		logEvent({ userId: getUserIdFromCtx(ctx), name: "first_open" });
+		ctx.reply("✨ Доброе утро! Я умею показывать актуальное расписание Лицея 50 при ДГТУ").then(() => changeUserInfo(ctx as any));
+	});
 
-	bot.on('text', (ctx, next) => {
+	bot.help((ctx) => ctx.reply("Бот расписаний Лицея 50 при ДГТУ. При возникновении проблем писать @not_hello_world"));
+
+	bot.on("text", (ctx, next) => {
 		const userId: string = ctx.message.chat.id.toString();
 
-		if (!sessions[userId] || sessions[userId].state === 'normal') next();
-		else if (sessions[userId].state === 'change-type') {
+		if (!sessions[userId] || sessions[userId].state === "normal") next();
+		else if (sessions[userId].state === "change-type") {
 			const type = ctx.message.text.toLowerCase();
 
 			if (!["учусь", "преподаю"].includes(type)) {
@@ -74,12 +84,7 @@ function run() {
 
 			if (sessions[userId].type === "student") {
 				if (groups[group]) {
-					logEvent({
-						userId: getUserIdFromCtx(ctx as Context),
-						name: "group_change",
-						params: { type: "student", group },
-					});
-
+					logUserGroupChange(getUserIdFromCtx(ctx as Context), group);
 					setUserInfo(userId, {type: "student", group: groups[group]}).then(() => {
 						sessions[userId].state = 'normal';
 						delete sessions[userId].type;
@@ -95,12 +100,7 @@ function run() {
 					return;
 				}
 
-				logEvent({
-					userId: getUserIdFromCtx(ctx as Context),
-					name: "group_change",
-					params: { type: "teacher", group: t.fullName },
-				});
-
+				logUserGroupChange(getUserIdFromCtx(ctx as Context), t.fullName);
 				setUserInfo(userId, { type: "teacher", group: t.code }).then(() => {
 					sessions[userId].state = 'normal';
 					delete sessions[userId].type;
