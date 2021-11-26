@@ -33,6 +33,7 @@ const sessions: Record<string, SessionData> = {};
 const defaultKeyboard = Markup.keyboard([['Сегодня'], ['Вчера', 'Завтра'], ['На день недели', '✨ Дополнительно']]).resize();
 const settingsKeyboard = Markup.inlineKeyboard([[{ text: 'Рейтинг классов', callback_data: 'population' }], [{ text: 'Настроить расписание', callback_data: 'group' }]]);
 const userTypeKeyboard = Markup.keyboard(['Учусь', 'Преподаю']).resize();
+const leaderboardPlaces = ["🥇", "🥈", "🥉"];
 
 initTimetableService();
 initUserService();
@@ -187,9 +188,16 @@ function replyWithGroupsTop(ctx: Context) {
 		name: "leaderboard_view"
 	});
 
-	Promise.all([getUsersLeaderboard(), getUsersCount()]).then(([leaderboard, count]) => {
-		ctx.replyWithMarkdownV2(`Население нашего королевства: ${count} humans \n\n👑 ${leaderboard.map(v => `*${inverseGroups[v[0]]}* \\- ${v[1]}`).join("\n")}`);
-		ctx.reply("Обязательно показывай бота друзьям и однокласникам, чтобы им тоже было удобно смотреть расписание");
+	Promise.all([getUsersLeaderboard(), getUsersCount()]).then(([rawLeaderboard, count]) => {
+		const leaderboard = rawLeaderboard.map(v => `*${inverseGroups[v[0]]}* \\- ${v[1]}`);
+
+		let text = `Население нашего королевства: ${count} humans \n\n`;
+		for (let i = 0; i < leaderboardPlaces.length; i++)
+			text += `${leaderboard[i]} ${leaderboardPlaces[i]}\n`;
+		text += leaderboard.slice(leaderboardPlaces.length).join("\n");
+
+		ctx.replyWithMarkdownV2(text).then(() =>
+			ctx.reply("Обязательно показывай бота друзьям и однокласникам, чтобы им тоже было удобно смотреть расписание"));
 	})
 }
 
