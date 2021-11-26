@@ -52,7 +52,7 @@ function run() {
 	});
 
 	bot.start((ctx: Context) => {
-		logEvent({ userId: getUserIdFromCtx(ctx), name: "first_open" });
+		logEvent({ userId: getUserIdFromCtx(ctx), name: "start_command" });
 		ctx.reply("✨ Доброе утро! Я умею показывать актуальное расписание Лицея 50 при ДГТУ").then(() => changeUserInfo(ctx as any));
 	});
 
@@ -192,9 +192,14 @@ function replyWithGroupsTop(ctx: Context) {
 		const leaderboard = rawLeaderboard.map(v => `*${inverseGroups[v[0]]}* \\- ${v[1]}`);
 
 		let text = `Население нашего королевства: ${count} humans \n\n`;
-		for (let i = 0; i < leaderboardPlaces.length; i++)
-			text += `${leaderboard[i]} ${leaderboardPlaces[i]}\n`;
-		text += leaderboard.slice(leaderboardPlaces.length).join("\n");
+
+		let delta = 0;
+		for (let i = 0; i < leaderboardPlaces.length + delta; i++) {
+			text += `${leaderboard[i]} ${leaderboardPlaces[i - delta]}\n`;
+			if (rawLeaderboard.length > i + 1 && rawLeaderboard[i][1] === rawLeaderboard[i + 1][1]) delta++;
+		}
+
+		text += leaderboard.slice(leaderboardPlaces.length + delta).join("\n");
 
 		ctx.replyWithMarkdownV2(text).then(() =>
 			ctx.reply("Обязательно показывай бота друзьям и однокласникам, чтобы им тоже было удобно смотреть расписание"));
