@@ -66,7 +66,7 @@ function processBroadcastConfirmation(bot: Telegraf, ctx: TextContext) {
     broadcastState.status = "none";
     ctx.reply("Хорошо, отправляю сообщения...")
       .then(() => broadcastMessage(bot, broadcastState.group!, broadcastState.text!))
-      .then(failsNum => ctx.reply(`Готово, все сообщения отправленны. неуспешно - ${failsNum}`));
+      .then(status => ctx.reply(`Готово, сообщения отправленны: ${status}`));
   } else cancelBroadcast(ctx);
 }
 
