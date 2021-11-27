@@ -2,14 +2,14 @@ import { Context, Markup, Telegraf } from 'telegraf';
 import { init as initTimetableService, getTimetable, DateTimetable } from './services/timetable-service';
 import * as admin from 'firebase-admin';
 import { dateToSimpleString, getDayOfWeekWithDelta, getUserIdFromCtx } from './utils';
-import { groups, inverseGroups, searchForTeacher } from './services/groups-service';
+import { groups, inverseGroups, inverseTeachers, searchForTeacher } from './services/groups-service';
 import {
 	init as initUserService,
 	getUsersCount,
 	getUserInfo,
 	setUserInfo,
 	UserType,
-	getUsersLeaderboard
+	getUsersLeaderboard, getTeachersList
 } from './services/user-service';
 import { CallbackQuery } from "typegram/callback";
 import { logEvent, logPageView, logUserGroupChange } from './services/analytics-service';
@@ -124,6 +124,11 @@ function run() {
 	bot.on('callback_query', (ctx) => {
 		if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "population") replyWithGroupsTop(ctx);
 		else if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "group") changeUserInfo(ctx)
+	});
+
+	bot.command("/teachers", ctx => {
+		if (ctx.message.from.username !== "not_hello_world") return;
+		getTeachersList().then(l => ctx.reply(l.map(v => inverseTeachers[v]).join("\n")));
 	});
 
 	bot.on('text', ctx => {

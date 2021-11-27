@@ -148,3 +148,6 @@ export const teachers: Record<string, string> = {
 	"Юдина А.Н.": "043",
 	"Ягодка Н.Е.": "040"
 }
+
+export const inverseTeachers: Record<string, string> = {};
+Object.entries(teachers).forEach(([name, code]) => { inverseTeachers[code] = name; });

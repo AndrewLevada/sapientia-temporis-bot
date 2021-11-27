@@ -36,6 +36,13 @@ export function getUsersCount(): Promise<number> {
 	return usersRef.once('value').then(snapshot => snapshot.numChildren());
 }
 
+export function getTeachersList(): Promise<string[]> {
+	return usersRef.orderByChild("type")
+		.equalTo("teacher")
+		.once("value")
+		.then(s => Object.values(s.val()).map(v => (v as UserInfo).group));
+}
+
 export function getUsersLeaderboard(): [string, number][] {
 	return Object.entries(top).sort((a, b) => b[1] - a[1]);
 }
