@@ -1,227 +1,45 @@
-import { Context, Markup, Telegraf } from 'telegraf';
-import { init as initTimetableService, getTimetable, DateTimetable } from './services/timetable-service';
+import { Context, Telegraf } from 'telegraf';
+import { init as initTimetableService } from './services/timetable-service';
 import * as admin from 'firebase-admin';
-import { dateToSimpleString, getDayOfWeekWithDelta, getUserIdFromCtx } from './utils';
-import { groups, inverseGroups, inverseTeachers, searchForTeacher } from './services/groups-service';
-import {
-	init as initUserService,
-	getUsersCount,
-	getUserInfo,
-	setUserInfo,
-	UserType,
-	getUsersLeaderboard, getTeachersList
-} from './services/user-service';
-import { CallbackQuery } from "typegram/callback";
-import { logEvent, logPageView, logUserGroupChange } from './services/analytics-service';
-
-const delta = ['Вчера','Сегодня','Завтра'];
-const workWeek = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
-const week = ['Воскресенье', ...workWeek];
+import { getUserIdFromCtx } from './utils';
+import { init as initUserService} from './services/user-service';
+import { logPageView } from './services/analytics-service';
+import { bindUserInfoChange } from './bot/user-info-change';
+import { adminUsername } from './bot/env';
+import { bindTimetable } from './bot/timetable';
+import { bindAdmin } from './bot/admin';
+import { bindLeaderboard } from './bot/leaderboard';
+import { bindGeneral, defaultKeyboard } from './bot/general';
 
 admin.initializeApp({
 	credential: admin.credential.cert(JSON.parse(Buffer.from(process.env.FIREBASE_CONFIG as string, 'base64').toString('ascii'))),
 	databaseURL: process.env.FIREBASE_DATABASE_URL as string,
 });
 
-interface SessionData {
-	state?: 'change-type' | 'change-group' | 'normal';
-	type?: UserType;
-}
-
-const sessions: Record<string, SessionData> = {};
-
-const defaultKeyboard = Markup.keyboard([['Сегодня'], ['Вчера', 'Завтра'], ['На день недели', '✨ Дополнительно ✨']]).resize();
-const settingsKeyboard = Markup.inlineKeyboard([[{ text: 'Рейтинг классов', callback_data: 'population' }], [{ text: 'Настроить расписание', callback_data: 'group' }]]);
-const userTypeKeyboard = Markup.keyboard(['Учусь', 'Преподаю']).resize();
-const leaderboardPlaces = ["🥇", "🥈", "🥉"];
-
 initTimetableService();
 initUserService();
-run();
 
-function run() {
-	const bot = new Telegraf(process.env.API_KEY as string);
+const bot = new Telegraf(process.env.API_KEY as string);
+bindBot();
+bot.launch().then();
 
+function bindBot() {
+	bindTextAnalytics(bot);
+	bindGeneral(bot);
+	bindUserInfoChange(bot);
+	bindTimetable(bot);
+	bindLeaderboard(bot);
+	bindAdmin(bot);
+	bot.on('text', ctx => ctx.reply('Для получения информации /help', defaultKeyboard));
+}
+
+function bindTextAnalytics(bot: Telegraf) {
 	bot.on("text", (ctx, next) => {
-		logPageView({
+		if (ctx.message.from.username !== adminUsername) logPageView({
 			userId: getUserIdFromCtx(ctx as Context),
 			title: ctx.message.text,
 			url: "/text",
 		});
 		next();
 	});
-
-	bot.start((ctx: Context) => {
-		logEvent({ userId: getUserIdFromCtx(ctx), name: "start_command" });
-		ctx.reply("✨ Доброе утро! Я умею показывать актуальное расписание Лицея 50 при ДГТУ").then(() => changeUserInfo(ctx as any));
-	});
-
-	bot.help((ctx) => ctx.reply("Бот расписаний Лицея 50 при ДГТУ. При возникновении проблем писать @not_hello_world"));
-
-	bot.on("text", (ctx, next) => {
-		const userId: string = ctx.message.chat.id.toString();
-
-		if (!sessions[userId] || sessions[userId].state === "normal") next();
-		else if (sessions[userId].state === "change-type") {
-			const type = ctx.message.text.toLowerCase();
-
-			if (!["учусь", "преподаю"].includes(type)) {
-				ctx.reply('Некорректное значение! Повтори ввод', userTypeKeyboard);
-				return;
-			}
-
-			sessions[userId].state = "change-group";
-			if (type === "учусь") {
-				sessions[userId].type = "student";
-				ctx.reply('В каком классе ты учишься?', Markup.removeKeyboard()).then();
-			}
-			else if (type === "преподаю") {
-				sessions[userId].type = "teacher";
-				ctx.reply('Введите вашу фамилию', Markup.removeKeyboard()).then();
-			}
-		} else if (sessions[userId].state === 'change-group') {
-			const group = ctx.message.text.toLowerCase().replace(' ', '');
-
-			if (sessions[userId].type === "student") {
-				if (groups[group]) {
-					logUserGroupChange(getUserIdFromCtx(ctx as Context), group);
-					setUserInfo(userId, {type: "student", group: groups[group]}).then(() => {
-						sessions[userId].state = 'normal';
-						delete sessions[userId].type;
-						ctx.reply('Отлично! Расписание на сегодня:', defaultKeyboard);
-						replyWithTimetableForDelta(ctx, 0).then();
-					});
-				}
-				else ctx.reply('Некорректный класс! Повтори ввод');
-			} else if (sessions[userId].type === "teacher") {
-				const t = searchForTeacher(group);
-				if (!t) {
-					ctx.reply('Преподаватель не найден! Повторите ввод');
-					return;
-				}
-
-				logUserGroupChange(getUserIdFromCtx(ctx as Context), t.fullName);
-				setUserInfo(userId, { type: "teacher", group: t.code }).then(() => {
-					sessions[userId].state = 'normal';
-					delete sessions[userId].type;
-					ctx.reply(`Отлично! Распознал вас как ${t.fullName}`);
-					ctx.reply('Вот расписание на сегодня:', defaultKeyboard);
-					replyWithTimetableForDelta(ctx, 0).then();
-				});
-			}
-		}
-	});
-
-	bot.hears('Сегодня', (ctx) => replyWithTimetableForDelta(ctx, 0));
-	bot.hears('Завтра', (ctx) => replyWithTimetableForDelta(ctx, 1));
-	bot.hears('Вчера', (ctx) => replyWithTimetableForDelta(ctx, -1));
-
-	bot.hears('На день недели', (ctx) => ctx.reply('Выберите день недели', getDayAwareWeekKeyboard()));
-	bot.hears(workWeek.map(v => new RegExp(`${v}( \(Сегодня\))?`)), (ctx) =>
-		replyWithTimetableForDay(ctx, week.indexOf(ctx.message.text.split(' ')[0])));
-
-	bot.hears('✨ Дополнительно ✨', (ctx) => ctx.reply('Настройки', settingsKeyboard));
-	bot.on('callback_query', (ctx) => {
-		if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "population") replyWithGroupsTop(ctx);
-		else if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "group") changeUserInfo(ctx)
-	});
-
-	bot.command("/teachers", ctx => {
-		if (ctx.message.from.username !== "not_hello_world") return;
-		getTeachersList().then(l => ctx.reply(l.map(v => inverseTeachers[v]).join("\n")));
-	});
-
-	bot.on('text', ctx => {
-		ctx.reply('Для получения информации /help', defaultKeyboard)
-	});
-
-	bot.launch().then();
-}
-
-async function replyWithTimetableForDelta(ctx : Context, dayDelta: number) {
-	if (!ctx.message) return;
-
-	logEvent({
-		userId: getUserIdFromCtx(ctx),
-		name: "timetable_view",
-		params: { type: "delta", dayDelta },
-	});
-
-	getUserInfo(ctx.message.chat.id.toString()).then(info => {
-		if (!info || !info.type || !info.group) {
-			ctx.reply("Бот обновился! Теперь мне нужны дополнительные данные :)");
-			changeUserInfo(ctx);
-			return;
-		}
-
-		const now = new Date();
-		const day = getDayOfWeekWithDelta(dayDelta);
-		const date = new Date(now.valueOf() + (day - now.getDay()) * (24 * 60 * 60 * 1000));
-		getTimetable(info, date).then((timetable: DateTimetable) => {
-			ctx.replyWithMarkdownV2(`${delta[dayDelta + 1]} ${week[day]}: \n\n${timetable.lessons.join("\n\n")}`);
-		})
-	});
-}
-
-async function replyWithTimetableForDay(ctx : Context, day: number) {
-	if (!ctx.message) return;
-
-	logEvent({
-		userId: getUserIdFromCtx(ctx),
-		name: "timetable_view",
-		params: { type: "week", day },
-	});
-
-	getUserInfo(ctx.message.chat.id.toString()).then(info => {
-		if (!info || !info.type || !info.group) {
-			ctx.reply("Бот обновился! Теперь мне нужны дополнительные данные :)");
-			changeUserInfo(ctx);
-			return;
-		}
-
-		const now = new Date();
-		const date = new Date(now.valueOf() + (day - now.getDay()) * (24 * 60 * 60 * 1000) + (day < now.getDay() ? (7 * 24 * 60 * 60 * 1000) : 0));
-		getTimetable(info, date).then((timetable: DateTimetable) => {
-			ctx.replyWithMarkdownV2(`${week[day]} \\(${dateToSimpleString(timetable.date)}\\): \n\n${timetable.lessons.join("\n\n")}`, defaultKeyboard);
-		})
-	});
-}
-
-function replyWithGroupsTop(ctx: Context) {
-	logEvent({
-		userId: getUserIdFromCtx(ctx),
-		name: "leaderboard_view"
-	});
-
-	Promise.all([getUsersLeaderboard(), getUsersCount()]).then(([rawLeaderboard, count]) => {
-		const leaderboard = rawLeaderboard.map(v => `*${inverseGroups[v[0]]}* \\- ${v[1]}`);
-
-		let text = `Население нашего королевства: ${count} humans \n\n`;
-
-		let delta = 0;
-		for (let i = 0; i < leaderboardPlaces.length + delta; i++) {
-			text += `${leaderboard[i]} ${leaderboardPlaces[i - delta]}\n`;
-			if (rawLeaderboard.length > i + 1 && rawLeaderboard[i][1] === rawLeaderboard[i + 1][1]) delta++;
-		}
-
-		text += leaderboard.slice(leaderboardPlaces.length + delta).join("\n");
-
-		ctx.replyWithMarkdownV2(text).then(() =>
-			ctx.reply("Обязательно показывай бота друзьям и однокласникам, чтобы им тоже было удобно смотреть расписание"));
-	})
-}
-
-function getDayAwareWeekKeyboard(): any {
-	const buttons = [['Понедельник', 'Вторник'], ['Среда', 'Четверг'], ['Пятница', 'Суббота']];
-	const day = getDayOfWeekWithDelta(0) - 1;
-	if (day === -1) return Markup.keyboard(buttons);
-	buttons[Math.floor(day / 2)][day % 2] += ' (Сегодня)';
-	return Markup.keyboard(buttons);
-}
-
-function changeUserInfo(ctx: { message?: any } & { update?: { callback_query?: any }} & Context): void {
-	const userId: string = getUserIdFromCtx(ctx);
-	ctx.reply('Чем вы занимаетесь в лицее?', userTypeKeyboard).then();
-	if (!sessions[userId]) sessions[userId] = { state: 'change-type' };
-	else sessions[userId].state = 'change-type';
 }

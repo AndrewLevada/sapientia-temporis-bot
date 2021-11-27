@@ -1,5 +1,8 @@
 import { Context } from 'telegraf';
 
+export const workWeekStrings = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+export const weekStrings = ['Воскресенье', ...workWeekStrings];
+
 export function getDayOfWeekWithDelta(dateDelta: number) {
 	let day: number = new Date().getDay() + dateDelta;
 	if (day === -1) day = 6;
