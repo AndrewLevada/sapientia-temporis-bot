@@ -1,6 +1,8 @@
 import { database } from "firebase-admin";
 import Database = database.Database;
 import Reference = database.Reference;
+import { SpecialBroadcastGroup } from "./broadcast-service";
+import { inverseGroups } from "./groups-service";
 
 let usersRef!: Reference;
 
@@ -30,6 +32,23 @@ export function setUserInfo(userId: string, info: UserInfo): Promise<void> {
 
 export function getUserInfo(userId: string): Promise<UserInfo> {
   return usersRef.child(`${userId}`).get().then(snapshot => snapshot.val());
+}
+
+export function getUsersIdsByGroup(group: SpecialBroadcastGroup | string): Promise<string[]> {
+  if (group === "all") return usersRef.once("value").then(v => Object.keys(v.val()));
+
+  if (group === "students" || group === "teachers")
+    return usersRef.orderByChild("type").equalTo(group.slice(0, -1))
+      .once("value").then(v => Object.keys(v.val()));
+
+  if (["5", "6", "7", "8", "9", "10", "11"].includes(group))
+    return usersRef.orderByChild("type").equalTo("student").once("value")
+      .then(v => Object.entries(v.val())
+        .filter(o => inverseGroups[(o[1] as any).group]?.startsWith(group))
+        .map(o => o[0]));
+
+  return usersRef.orderByChild("type").equalTo("student").once("value")
+    .then(v => Object.entries(v.val()).filter(o => (o[1] as any).group === group).map(o => o[0]));
 }
 
 export function getUsersCount(): Promise<number> {

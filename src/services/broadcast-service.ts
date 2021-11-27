@@ -1,0 +1,20 @@
+import { Telegraf } from "telegraf";
+import { getUsersIdsByGroup } from "./user-service";
+import { groups } from "./groups-service";
+
+export type SpecialBroadcastGroup = "students" | "teachers" | "all" | "5" | "6" | "7" | "8" | "9" | "10" | "11";
+export const specialBroadcastGroupStrings = ["students", "teachers", "all", "5", "6", "7", "8", "9", "10", "11"];
+
+export function broadcastMessage(bot: Telegraf, group: SpecialBroadcastGroup | string, text: string): Promise<number> {
+  return getUsersIdsByGroup(specialBroadcastGroupStrings.includes(group) ? group : groups[group]).then(ids => {
+    const promises = [];
+    let fails = 0;
+    for (const id of ids) promises.push(bot.telegram.sendMessage(`wefwef${id}`, text).catch(onFail));
+    return Promise.all(promises).then(() => fails);
+
+    function onFail() {
+      fails++;
+      return Promise.resolve();
+    }
+  });
+}
