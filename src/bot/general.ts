@@ -16,5 +16,6 @@ export function bindGeneral(bot: Telegraf) {
 
   bot.help(ctx => ctx.reply(`Бот расписаний Лицея 50 при ДГТУ. При возникновении проблем писать @${adminUsername}`));
 
+  bot.hears("✨ Дополнительно", ctx => ctx.reply("Настройки", settingsKeyboard)); // Temp
   bot.hears("✨ Дополнительно ✨", ctx => ctx.reply("Настройки", settingsKeyboard));
 }
