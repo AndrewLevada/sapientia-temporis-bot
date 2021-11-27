@@ -16,7 +16,7 @@ export function broadcastMessage(bot: Telegraf, group: SpecialBroadcastGroup | s
   return getUsersIdsByGroup(specialBroadcastGroupStrings.includes(group) ? group : groups[group]).then(ids => {
     const promises = [];
     let fails = 0;
-    for (const id of ids) promises.push(bot.telegram.sendMessage(`wefwef${id}`, text).catch(onFail));
+    for (const id of ids) promises.push(bot.telegram.sendMessage(id, text).catch(onFail));
     return Promise.all(promises).then(() => fails);
 
     function onFail() {
