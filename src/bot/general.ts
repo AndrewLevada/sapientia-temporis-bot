@@ -10,7 +10,7 @@ const settingsKeyboard = Markup.inlineKeyboard([[{ text: "Рейтинг кла�
 export function bindGeneral(bot: Telegraf) {
   bot.start((ctx: Context) => {
     logEvent({ userId: getUserIdFromCtx(ctx), name: "start_command" });
-    ctx.reply("✨ Доброе утро! Я умею показывать актуальное расписание Лицея 50 при ДГТУ")
+    ctx.reply("Доброе утро! Я умею показывать актуальное расписание Лицея 50 при ДГТУ")
       .then(() => changeUserInfo(ctx as any));
   });
 
