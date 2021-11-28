@@ -18,3 +18,5 @@ export function dateToSimpleString(date: Date): string {
 export function getUserIdFromCtx(ctx: { message?: unknown } & { update?: { callback_query?: any }} & Context): string {
   return (ctx.message || ctx.update.callback_query.message).chat.id.toString();
 }
+
+export type TextContext = Context & { message: { text: string } };

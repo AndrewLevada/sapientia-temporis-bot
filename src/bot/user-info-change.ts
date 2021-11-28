@@ -2,9 +2,9 @@ import { Context, Markup, Telegraf } from "telegraf";
 import { CallbackQuery } from "typegram/callback";
 import { groups, searchForTeacher } from "../services/groups-service";
 import { logUserGroupChange } from "../services/analytics-service";
-import { getUserIdFromCtx } from "../utils";
+import { getUserIdFromCtx, TextContext } from "../utils";
 import { setUserInfo } from "../services/user-service";
-import { sessions } from "./env";
+import { sessions, resetUserSession } from "./env";
 import { replyWithTimetableForDelta } from "./timetable";
 import { defaultKeyboard } from "./general";
 
@@ -44,34 +44,36 @@ function processTypeChange(ctx: any, userId: string) {
   }
 }
 
-function processGroupChange(ctx: any, userId: string) {
+function processGroupChange(ctx: TextContext, userId: string) {
   const group = ctx.message.text.toLowerCase().replace(" ", "");
 
   if (sessions[userId].type === "student")
     if (groups[group]) {
       logUserGroupChange(getUserIdFromCtx(ctx as Context), group);
-      setUserInfo(userId, { type: "student", group: groups[group] }).then(() => {
-        sessions[userId].state = "normal";
-        delete sessions[userId].type;
-        ctx.reply("Отлично! Расписание на сегодня:", defaultKeyboard);
-        replyWithTimetableForDelta(ctx, 0);
+      setUserInfo(userId, {
+        type: "student",
+        group: groups[group],
+        name: ctx.from?.first_name,
+      }).then(() => {
+        resetUserSession(userId);
+        ctx.reply("Отлично! Расписание на сегодня:", defaultKeyboard)
+          .then(() => replyWithTimetableForDelta(ctx, 0));
       });
-    } else ctx.reply("Некорректный класс! Повтори ввод");
+    } else ctx.reply("Некорректный класс! Повтори ввод").then();
   else if (sessions[userId].type === "teacher") {
     const t = searchForTeacher(group);
-    if (!t) {
-      ctx.reply("Преподаватель не найден! Повторите ввод");
-      return;
-    }
-
-    logUserGroupChange(getUserIdFromCtx(ctx as Context), t.fullName);
-    setUserInfo(userId, { type: "teacher", group: t.code }).then(() => {
-      sessions[userId].state = "normal";
-      delete sessions[userId].type;
-      ctx.reply(`Отлично! Распознал вас как ${t.fullName}`);
-      ctx.reply("Вот расписание на сегодня:", defaultKeyboard);
-      replyWithTimetableForDelta(ctx, 0);
-    });
+    if (t) {
+      logUserGroupChange(getUserIdFromCtx(ctx as Context), t.fullName);
+      setUserInfo(userId, {
+        type: "teacher",
+        group: t.code,
+        name: ctx.from?.first_name,
+      }).then(() => {
+        resetUserSession(userId);
+        ctx.reply(`Отлично! Распознаю вас как ${t.fullName}. Вот расписание на сегодня:`, defaultKeyboard)
+          .then(() => replyWithTimetableForDelta(ctx, 0));
+      });
+    } else ctx.reply("Преподаватель не найден! Повторите ввод").then();
   }
 }
 

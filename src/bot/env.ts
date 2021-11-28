@@ -13,6 +13,6 @@ export function setUserSessionState(userId: string, newState: SessionState) {
   else sessions[userId].state = newState;
 }
 
-export function tryResetUserSessionState(userId: string) {
-  if (sessions[userId]) sessions[userId].state = "normal";
+export function resetUserSession(userId: string) {
+  if (sessions[userId]) sessions[userId] = { state: "normal" };
 }

@@ -5,7 +5,7 @@ import { getUserInfo } from "../services/user-service";
 import { DateTimetable, getTimetable } from "../services/timetable-service";
 import { changeUserInfo } from "./user-info-change";
 import { defaultKeyboard } from "./general";
-import { tryResetUserSessionState } from "./env";
+import { resetUserSession } from "./env";
 
 const deltaDayStrings = ["Вчера", "Сегодня", "Завтра"];
 
@@ -23,7 +23,7 @@ export function replyWithTimetableForDelta(ctx: Context, dayDelta: number) {
 
   const userId = getUserIdFromCtx(ctx);
   logEvent({ userId, name: "timetable_view", params: { type: "delta", dayDelta } });
-  tryResetUserSessionState(userId);
+  resetUserSession(userId);
   getUserInfo(userId).then(info => {
     if (!info || !info.type || !info.group) {
       ctx.reply("Бот обновился! Теперь мне нужны дополнительные данные :)");
@@ -45,7 +45,7 @@ export function replyWithTimetableForDay(ctx: Context, day: number) {
 
   const userId = getUserIdFromCtx(ctx);
   logEvent({ userId, name: "timetable_view", params: { type: "week", day } });
-  tryResetUserSessionState(userId);
+  resetUserSession(userId);
   getUserInfo(userId).then(info => {
     if (!info || !info.type || !info.group) {
       ctx.reply("Бот обновился! Теперь мне нужны дополнительные данные :)");

@@ -17,6 +17,7 @@ export function init() {
 export interface UserInfo {
   type: UserType;
   group: string;
+  name?: string;
 }
 
 export type UserType = "student" | "teacher";
