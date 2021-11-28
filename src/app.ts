@@ -2,6 +2,7 @@ import { Context, Telegraf } from "telegraf";
 import * as admin from "firebase-admin";
 import { init as initTimetableService } from "./services/timetable-service";
 import { init as initFeedbackService } from "./services/feedback-service";
+import { init as initEmulatorCookiesService } from "./services/analytics-reporter/emulator-cookies-service";
 import { getUserIdFromCtx } from "./utils";
 import { init as initUserService } from "./services/user-service";
 import { logPageView } from "./services/analytics-service";
@@ -11,6 +12,8 @@ import { bindAdmin } from "./bot/admin";
 import { bindLeaderboard } from "./bot/leaderboard";
 import { bindGeneral, defaultKeyboard } from "./bot/general";
 import { bindFeedback } from "./bot/feedback";
+import { startAnalyticsPageServer } from "./services/analytics-reporter/server";
+import { startAnalyticsBrowserEmulator } from "./services/analytics-reporter/browser-emulator";
 import { adminUsername } from "./env";
 
 admin.initializeApp({
@@ -21,13 +24,22 @@ admin.initializeApp({
 initTimetableService();
 initUserService();
 initFeedbackService();
+initEmulatorCookiesService();
+startAnalyticsPageServer()
+  .then(startAnalyticsBrowserEmulator)
+  .then(startBot);
 
-const bot = new Telegraf(process.env.API_KEY as string);
-bindBot();
-bot.launch().then();
+function startBot() {
+  const bot = new Telegraf(process.env.API_KEY as string);
+  bindBot(bot);
+  bot.launch().then(() => {
+    process.once("SIGINT", () => bot.stop("SIGINT"));
+    process.once("SIGTERM", () => bot.stop("SIGTERM"));
+  });
+}
 
-function bindBot() {
-  bindTextAnalytics();
+function bindBot(bot: Telegraf) {
+  bindTextAnalytics(bot);
   bindGeneral(bot);
   bindUserInfoChange(bot);
   bindTimetable(bot);
@@ -37,7 +49,7 @@ function bindBot() {
   bot.on("text", ctx => ctx.reply("Для получения информации /help", defaultKeyboard));
 }
 
-function bindTextAnalytics() {
+function bindTextAnalytics(bot: Telegraf) {
   bot.on("text", (ctx, next) => {
     if (ctx.message.from.username !== adminUsername) logPageView({
       userId: getUserIdFromCtx(ctx as Context),

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { adminUserId } from "../env";
+import { viewPage } from "./analytics-reporter/browser-emulator";
 
 const gaUrl = `https://google-analytics.com/mp/collect?api_secret=${process.env.GA_API_KEY}&measurement_id=G-HYFTVXK74M`;
 
@@ -17,15 +18,7 @@ export interface PageViewEvent {
 
 export function logPageView(e: PageViewEvent): void {
   if (e.userId === adminUserId) return;
-  logEvent({
-    userId: e.userId,
-    name: "page_view",
-    params: {
-      page_title: e.title,
-      page_location: `https://t.me/sapientia_temporis_bot${e.url}`,
-      user_id: e.userId,
-    },
-  });
+  viewPage(e).then();
 }
 
 export function logEvent(event: Event): void {
