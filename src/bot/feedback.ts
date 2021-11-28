@@ -25,7 +25,7 @@ export function bindFeedback(bot: Telegraf) {
     else if (ctx.message.text.toLowerCase().trim() === "отмена") {
       setUserSessionState(userId, "normal");
       ctx.reply("Отменяю отправку обратной связи", defaultKeyboard);
-    } else reportFeedback(userId, ctx.message.text).then(() => {
+    } else reportFeedback(bot, userId, ctx.message.from.first_name, ctx.message.text).then(() => {
       logEvent({ userId, name: "feedback_sent" });
       setUserSessionState(userId, "normal");
       ctx.reply("Ок, ваша обратная связь сохранена. Спасибо за уделённое время :)", defaultKeyboard);
