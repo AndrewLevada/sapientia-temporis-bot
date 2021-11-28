@@ -1,4 +1,5 @@
 import axios from "axios";
+import { adminUserId } from "../env";
 
 const gaUrl = `https://google-analytics.com/mp/collect?api_secret=${process.env.GA_API_KEY}&measurement_id=G-HYFTVXK74M`;
 
@@ -15,6 +16,7 @@ export interface PageViewEvent {
 }
 
 export function logPageView(e: PageViewEvent): void {
+  if (e.userId === adminUserId) return;
   logEvent({
     userId: e.userId,
     name: "page_view",
@@ -27,6 +29,7 @@ export function logPageView(e: PageViewEvent): void {
 }
 
 export function logEvent(event: Event): void {
+  if (event.userId === adminUserId) return;
   axios.post(gaUrl, {
     client_id: event.userId,
     user_id: event.userId,
@@ -38,6 +41,7 @@ export function logEvent(event: Event): void {
 }
 
 export function logUserGroupChange(userId: string, group: string): void {
+  if (userId === adminUserId) return;
   axios.post(gaUrl, {
     client_id: userId,
     user_id: userId,

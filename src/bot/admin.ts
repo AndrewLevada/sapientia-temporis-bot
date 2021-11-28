@@ -1,8 +1,8 @@
 import { Context, Telegraf } from "telegraf";
 import { getTeachersList } from "../services/user-service";
 import { groups, inverseTeachers } from "../services/groups-service";
-import { adminUsername } from "./env";
 import { broadcastMessage, SpecialBroadcastGroup, specialBroadcastGroupStrings } from "../services/broadcast-service";
+import { adminUsername } from "../env";
 
 type TextContext = Context & { message: { text: string } };
 

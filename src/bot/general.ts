@@ -2,7 +2,7 @@ import { Context, Markup, Telegraf } from "telegraf";
 import { logEvent } from "../services/analytics-service";
 import { getUserIdFromCtx } from "../utils";
 import { changeUserInfo } from "./user-info-change";
-import { adminUsername } from "./env";
+import { adminUsername } from "../env";
 
 export const defaultKeyboard = Markup.keyboard([["Сегодня"], ["Вчера", "Завтра"], ["На день недели", "✨ Дополнительно ✨"]]).resize();
 const settingsKeyboard = Markup.inlineKeyboard([

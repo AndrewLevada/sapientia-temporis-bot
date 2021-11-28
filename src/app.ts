@@ -6,12 +6,12 @@ import { getUserIdFromCtx } from "./utils";
 import { init as initUserService } from "./services/user-service";
 import { logPageView } from "./services/analytics-service";
 import { bindUserInfoChange } from "./bot/user-info-change";
-import { adminUsername } from "./bot/env";
 import { bindTimetable } from "./bot/timetable";
 import { bindAdmin } from "./bot/admin";
 import { bindLeaderboard } from "./bot/leaderboard";
 import { bindGeneral, defaultKeyboard } from "./bot/general";
 import { bindFeedback } from "./bot/feedback";
+import { adminUsername } from "./env";
 
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(Buffer.from(process.env.FIREBASE_CONFIG as string, "base64").toString("ascii"))),
