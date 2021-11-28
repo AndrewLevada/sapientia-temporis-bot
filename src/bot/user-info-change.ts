@@ -22,6 +22,7 @@ export function bindUserInfoChange(bot: Telegraf): void {
     if (!sessions[userId] || sessions[userId].state === "normal") next();
     else if (sessions[userId].state === "change-type") processTypeChange(ctx, userId);
     else if (sessions[userId].state === "change-group") processGroupChange(ctx, userId);
+    else next();
   });
 }
 

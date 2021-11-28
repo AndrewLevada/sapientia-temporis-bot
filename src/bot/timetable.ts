@@ -5,6 +5,7 @@ import { getUserInfo } from "../services/user-service";
 import { DateTimetable, getTimetable } from "../services/timetable-service";
 import { changeUserInfo } from "./user-info-change";
 import { defaultKeyboard } from "./general";
+import { tryResetUserSessionState } from "./env";
 
 const deltaDayStrings = ["Вчера", "Сегодня", "Завтра"];
 
@@ -20,13 +21,10 @@ export function bindTimetable(bot: Telegraf) {
 export function replyWithTimetableForDelta(ctx: Context, dayDelta: number) {
   if (!ctx.message) return;
 
-  logEvent({
-    userId: getUserIdFromCtx(ctx),
-    name: "timetable_view",
-    params: { type: "delta", dayDelta },
-  });
-
-  getUserInfo(ctx.message.chat.id.toString()).then(info => {
+  const userId = getUserIdFromCtx(ctx);
+  logEvent({ userId, name: "timetable_view", params: { type: "delta", dayDelta } });
+  tryResetUserSessionState(userId);
+  getUserInfo(userId).then(info => {
     if (!info || !info.type || !info.group) {
       ctx.reply("Бот обновился! Теперь мне нужны дополнительные данные :)");
       changeUserInfo(ctx);
@@ -45,13 +43,10 @@ export function replyWithTimetableForDelta(ctx: Context, dayDelta: number) {
 export function replyWithTimetableForDay(ctx: Context, day: number) {
   if (!ctx.message) return;
 
-  logEvent({
-    userId: getUserIdFromCtx(ctx),
-    name: "timetable_view",
-    params: { type: "week", day },
-  });
-
-  getUserInfo(ctx.message.chat.id.toString()).then(info => {
+  const userId = getUserIdFromCtx(ctx);
+  logEvent({ userId, name: "timetable_view", params: { type: "week", day } });
+  tryResetUserSessionState(userId);
+  getUserInfo(userId).then(info => {
     if (!info || !info.type || !info.group) {
       ctx.reply("Бот обновился! Теперь мне нужны дополнительные данные :)");
       changeUserInfo(ctx);
