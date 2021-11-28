@@ -1,7 +1,11 @@
 import { Context, Markup, Telegraf } from "telegraf";
 import { logEvent } from "../services/analytics-service";
-import { dateToSimpleString, getDayOfWeekWithDelta, getUserIdFromCtx, weekStrings, workWeekStrings } from "../utils";
-import { getUserInfo } from "../services/user-service";
+import { dateToSimpleString,
+  getDayOfWeekWithDelta,
+  getUserIdFromCtx,
+  weekStrings,
+  workWeekStrings } from "../utils";
+import { getUserInfo, setUserInfo, UserInfo } from "../services/user-service";
 import { DateTimetable, getTimetable } from "../services/timetable-service";
 import { changeUserInfo } from "./user-info-change";
 import { defaultKeyboard } from "./general";
@@ -26,10 +30,12 @@ export function replyWithTimetableForDelta(ctx: Context, dayDelta: number) {
   resetUserSession(userId);
   getUserInfo(userId).then(info => {
     if (!info || !info.type || !info.group) {
-      ctx.reply("Бот обновился! Теперь мне нужны дополнительные данные :)");
-      changeUserInfo(ctx);
+      ctx.reply("Бот обновился! Теперь требуются дополнительные данные")
+        .then(() => changeUserInfo(ctx));
       return;
     }
+
+    collectAdditionalUserData(ctx, userId, info);
 
     const now = new Date();
     const day = getDayOfWeekWithDelta(dayDelta);
@@ -48,10 +54,12 @@ export function replyWithTimetableForDay(ctx: Context, day: number) {
   resetUserSession(userId);
   getUserInfo(userId).then(info => {
     if (!info || !info.type || !info.group) {
-      ctx.reply("Бот обновился! Теперь мне нужны дополнительные данные :)");
-      changeUserInfo(ctx);
+      ctx.reply("Бот обновился! Теперь требуются дополнительные данные")
+        .then(() => changeUserInfo(ctx));
       return;
     }
+
+    collectAdditionalUserData(ctx, userId, info);
 
     const now = new Date();
     const date = new Date(now.valueOf()
@@ -63,10 +71,19 @@ export function replyWithTimetableForDay(ctx: Context, day: number) {
   });
 }
 
-export function getDayAwareWeekKeyboard(): any {
+function getDayAwareWeekKeyboard(): any {
   const buttons = [["Понедельник", "Вторник"], ["Среда", "Четверг"], ["Пятница", "Суббота"]];
   const day = getDayOfWeekWithDelta(0) - 1;
   if (day === -1) return Markup.keyboard(buttons);
   buttons[Math.floor(day / 2)][day % 2] += " (Сегодня)";
   return Markup.keyboard(buttons);
+}
+
+function collectAdditionalUserData(ctx: Context, userId: string, userInfo: UserInfo): void {
+  if (userInfo.username && userInfo.name) return;
+  setUserInfo(userId, {
+    ...userInfo,
+    name: `${ctx.from?.first_name} ${ctx.from?.last_name}`,
+    username: ctx.from?.username,
+  }).then();
 }

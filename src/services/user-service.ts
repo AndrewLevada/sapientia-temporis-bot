@@ -18,6 +18,7 @@ export interface UserInfo {
   type: UserType;
   group: string;
   name?: string;
+  username?: string;
 }
 
 export type UserType = "student" | "teacher";
@@ -25,10 +26,11 @@ export type UserType = "student" | "teacher";
 export function setUserInfo(userId: string, info: UserInfo): Promise<void> {
   const userRef = usersRef.child(userId);
   return userRef.once("value").then(snap => {
-    const user: UserInfo = snap.val();
-    if (user && user.group && user.type === "student") removeUserSnapFromTop(user.group);
+    const oldInfo: UserInfo = snap.val();
+    if (oldInfo && oldInfo.group && oldInfo.type === "student") removeUserSnapFromTop(oldInfo.group);
     if (info.type === "student") addUserSnapToTop(info.group);
-  }).then(() => userRef.set(info));
+    return userRef.set({ ...oldInfo, ...info });
+  });
 }
 
 export function getUserInfo(userId: string): Promise<UserInfo> {
