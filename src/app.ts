@@ -15,6 +15,7 @@ import { bindFeedback } from "./bot/feedback";
 import { startAnalyticsPageServer } from "./services/analytics-reporter/server";
 import { startAnalyticsBrowserEmulator } from "./services/analytics-reporter/browser-emulator";
 import { adminUsername } from "./env";
+import { sendMessageToAdmin } from "./services/broadcast-service";
 
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(Buffer.from(process.env.FIREBASE_CONFIG as string, "base64").toString("ascii"))),
@@ -35,6 +36,8 @@ function startBot() {
   bot.launch().then(() => {
     process.once("SIGINT", () => bot.stop("SIGINT"));
     process.once("SIGTERM", () => bot.stop("SIGTERM"));
+    process.on("unhandledRejection", (reason, p) => sendMessageToAdmin(bot, `⚠️ Unhandled Rejection: \n\n${reason} \n${p}`));
+    process.on("uncaughtException", err => sendMessageToAdmin(bot, `⚠️ Unhandled Exception: \n\n${err}`));
   });
 }
 

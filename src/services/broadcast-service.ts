@@ -2,6 +2,7 @@ import { Telegraf } from "telegraf";
 import { getUsersIdsByGroup } from "./user-service";
 import { groups } from "./groups-service";
 import { logEvent } from "./analytics-service";
+import { adminUserId } from "../env";
 
 export type SpecialBroadcastGroup = "students" | "teachers" | "all" | "5" | "6" | "7" | "8" | "9" | "10" | "11";
 export const specialBroadcastGroupStrings = ["students", "teachers", "all", "5", "6", "7", "8", "9", "10", "11"];
@@ -24,4 +25,8 @@ export function broadcastMessage(bot: Telegraf, group: SpecialBroadcastGroup | s
       return Promise.resolve();
     }
   });
+}
+
+export function sendMessageToAdmin(bot: Telegraf, text: string): Promise<void> {
+  return bot.telegram.sendMessage(adminUserId, text).then();
 }
