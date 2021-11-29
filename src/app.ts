@@ -36,7 +36,7 @@ function startBot() {
   bot.launch().then(() => {
     process.once("SIGINT", () => bot.stop("SIGINT"));
     process.once("SIGTERM", () => bot.stop("SIGTERM"));
-    process.on("unhandledRejection", (reason, p) => sendMessageToAdmin(bot, `⚠️ Unhandled Rejection: \n\n${reason} \n${p}`));
+    process.on("unhandledRejection", reason => sendMessageToAdmin(bot, `⚠️ Unhandled Rejection: \n\n${reason}`));
     process.on("uncaughtException", err => sendMessageToAdmin(bot, `⚠️ Unhandled Exception: \n\n${err}`));
   });
 }

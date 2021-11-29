@@ -81,9 +81,9 @@ function getDayAwareWeekKeyboard(): any {
 
 function collectAdditionalUserData(ctx: Context, userId: string, userInfo: UserInfo): void {
   if (userInfo.username && userInfo.name) return;
-  setUserInfo(userId, {
-    ...userInfo,
-    name: `${ctx.from?.first_name} ${ctx.from?.last_name}`,
-    username: ctx.from?.username,
-  }).then();
+  const additionalInfo: Partial<UserInfo> = {};
+  if (ctx.from?.first_name || ctx.from?.last_name)
+    additionalInfo.name = `${ctx.from?.first_name || ""} ${ctx.from?.last_name || ""}`;
+  if (ctx.from?.username) additionalInfo.username = ctx.from?.username;
+  if (additionalInfo !== {}) setUserInfo(userId, { ...userInfo, ...additionalInfo }).then();
 }

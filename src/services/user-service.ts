@@ -25,6 +25,10 @@ export type UserType = "student" | "teacher";
 
 export function setUserInfo(userId: string, info: UserInfo): Promise<void> {
   const userRef = usersRef.child(userId);
+
+  if (info.name === undefined) delete info.name;
+  if (info.username === undefined) delete info.username;
+
   return userRef.once("value").then(snap => {
     const oldInfo: UserInfo = snap.val();
     if (oldInfo && oldInfo.group && oldInfo.type === "student") removeUserSnapFromTop(oldInfo.group);
