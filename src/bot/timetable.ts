@@ -26,7 +26,7 @@ export function replyWithTimetableForDelta(ctx: Context, dayDelta: number) {
   if (!ctx.message) return;
 
   const userId = getUserIdFromCtx(ctx);
-  logEvent({ userId, name: "timetable_view", params: { type: "delta", dayDelta } });
+  logEvent(userId, "timetable_view", { type: "delta", dayDelta });
   resetUserSession(userId);
   getUserInfo(userId).then(info => {
     if (!info || !info.type || !info.group) {
@@ -50,7 +50,7 @@ export function replyWithTimetableForDay(ctx: Context, day: number) {
   if (!ctx.message) return;
 
   const userId = getUserIdFromCtx(ctx);
-  logEvent({ userId, name: "timetable_view", params: { type: "week", day } });
+  logEvent(userId, "timetable_view", { type: "week", day });
   resetUserSession(userId);
   getUserInfo(userId).then(info => {
     if (!info || !info.type || !info.group) {

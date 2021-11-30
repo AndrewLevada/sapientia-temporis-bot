@@ -1,7 +1,6 @@
 import { Context, Telegraf } from "telegraf";
 import { CallbackQuery } from "typegram/callback";
 import { logEvent } from "../services/analytics-service";
-import { getUserIdFromCtx } from "../utils";
 import { getUsersCount, getUsersLeaderboard } from "../services/user-service";
 import { inverseGroups } from "../services/groups-service";
 
@@ -17,11 +16,7 @@ export function bindLeaderboard(bot: Telegraf) {
 }
 
 function replyWithGroupsTop(ctx: Context) {
-  logEvent({
-    userId: getUserIdFromCtx(ctx),
-    name: "leaderboard_view",
-  });
-
+  logEvent(ctx, "leaderboard_view");
   Promise.all([getUsersLeaderboard(), getUsersCount()]).then(([rawLeaderboard, count]) => {
     const leaderboard = rawLeaderboard.map(v => `*${inverseGroups[v[0]]}* \\- ${v[1]}`);
 

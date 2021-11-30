@@ -1,5 +1,5 @@
 import puppeteer, { Browser, Page } from "puppeteer";
-import { PageViewEvent } from "../analytics-service";
+import { Event, PageViewEvent, UserPropertyUpdated } from "../analytics-service";
 import { analyticsServerPort } from "./server";
 import { getEmulatorCookies, setEmulatorCookies } from "./emulator-cookies-service";
 
@@ -17,9 +17,28 @@ export function startAnalyticsBrowserEmulator(): Promise<void> {
   });
 }
 
-export async function viewPage(e: PageViewEvent): Promise<void> {
+export async function emulateSendEvent(e: Event): Promise<void> {
+  emulatePageView({ userId: e.userId, url: `/${e.name}` }).then(page => {
+    page.evaluate((v: string) => {
+      const event = JSON.parse(v);
+      gtag("event", event.name, event.params || {});
+    }, JSON.stringify(e));
+  });
+}
+
+export async function emulateUserPropertiesUpdate(e: UserPropertyUpdated): Promise<void> {
+  emulatePageView({ userId: e.userId, url: null }).then(page => {
+    e.properties = { ...e.properties, crm_id: e.userId };
+    page.evaluate((v: string) => {
+      const event = JSON.parse(v);
+      gtag("set", "user_properties", event.properties);
+    }, JSON.stringify(e));
+  });
+}
+
+export async function emulatePageView(e: PageViewEvent): Promise<Page> {
   const session = sessions[e.userId];
-  if (session && !session.timeout) return;
+  if (session && !session.timeout) return session.page; // Potential bug here
   const page = session ? await continueSession(session, e) : await createNewPage(e);
   sessions[e.userId]!.timeout = setTimeout(() => {
     if (sessions[e.userId]) delete sessions[e.userId];
@@ -28,6 +47,7 @@ export async function viewPage(e: PageViewEvent): Promise<void> {
       page.close();
     });
   }, 14000);
+  return page;
 }
 
 async function createNewPage(e: PageViewEvent): Promise<Page> {
@@ -48,12 +68,20 @@ async function continueSession(session: EmulatedSession, e: PageViewEvent): Prom
 }
 
 async function loadPage(page: Page, e: PageViewEvent): Promise<void> {
-  await page.goto(`http://localhost:${analyticsServerPort}/${e.url}?pageTitle=${encodeURI(e.title)}`);
-  await page.evaluate((userId: string) => {
-    gtag("config", "G-HYFTVXK74M", { user_id: userId });
-    gtag("set", "user_properties", { crm_id: userId });
-  }, e.userId);
+  if (page.url() === "about:blank" && e.url === null) e.url = "/";
+  const newUrl = constructEmulatedUrl(e);
+  if (e.url !== null && page.url() !== newUrl) {
+    await page.goto(newUrl);
+    await page.evaluate((userId: string) => {
+      gtag("config", "G-HYFTVXK74M", { user_id: userId });
+      // gtag("set", "user_properties", { crm_id: userId });
+    }, e.userId);
+  }
   await page.click("body");
+}
+
+function constructEmulatedUrl(e: PageViewEvent): string {
+  return `http://localhost:${analyticsServerPort}${e.url}`;
 }
 
 declare function gtag(...args: any[]): void;

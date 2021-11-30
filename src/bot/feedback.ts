@@ -13,7 +13,7 @@ export function bindFeedback(bot: Telegraf) {
   bot.on("callback_query", (ctx, next) => {
     if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "feedback") {
       const userId = getUserIdFromCtx(ctx);
-      logEvent({ userId, name: "feedback_open" });
+      logEvent(userId, "feedback_open");
       setUserSessionState(userId, "feedback");
       ctx.reply("Спасибо, что решили оставить обратную связь. Опишите впечатления от использования, проблемы или предложения новых функций. Чтобы отменить отправку обратной связи напишите \"Отмена\"", feedbackKeyboard);
     } else next();
@@ -26,7 +26,7 @@ export function bindFeedback(bot: Telegraf) {
       setUserSessionState(userId, "normal");
       ctx.reply("Отменяю отправку обратной связи", defaultKeyboard);
     } else reportFeedback(bot, userId, ctx.message.from.first_name, ctx.message.text).then(() => {
-      logEvent({ userId, name: "feedback_sent" });
+      logEvent(userId, "feedback_sent");
       setUserSessionState(userId, "normal");
       ctx.reply("Ок, ваша обратная связь сохранена. Спасибо за уделённое время :)", defaultKeyboard);
     });

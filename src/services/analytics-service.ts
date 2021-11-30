@@ -1,8 +1,14 @@
-import axios from "axios";
-import { adminUserId } from "../env";
-import { viewPage } from "./analytics-reporter/browser-emulator";
+import { Context } from "telegraf";
+import { emulateSendEvent, emulateUserPropertiesUpdate, emulatePageView } from "./analytics-emulator/browser-emulator";
+import { getUserIdFromCtx } from "../utils";
 
-const gaUrl = `https://google-analytics.com/mp/collect?api_secret=${process.env.GA_API_KEY}&measurement_id=G-HYFTVXK74M`;
+// eslint-disable-next-line max-len
+// const gaUrl = `https://google-analytics.com/mp/collect?api_secret=${process.env.GA_API_KEY}&measurement_id=G-HYFTVXK74M`;
+
+export interface PageViewEvent {
+  userId: string;
+  url: string | null;
+}
 
 export interface Event {
   userId: string;
@@ -10,40 +16,35 @@ export interface Event {
   params?: any;
 }
 
-export interface PageViewEvent {
+export interface UserPropertyUpdated {
   userId: string;
-  title: string;
-  url: string;
+  properties: Record<string, any>;
 }
 
-export function logPageView(e: PageViewEvent): void {
-  if (e.userId === adminUserId) return;
-  viewPage(e).then();
+export function logPageView(ctx: Context, url: string): void {
+  // if (e.userId === adminUserId) return;
+  emulatePageView({ userId: getUserIdFromCtx(ctx), url }).then();
 }
 
-export function logEvent(event: Event): void {
-  if (event.userId === adminUserId) return;
-  axios.post(gaUrl, {
-    client_id: event.userId,
-    user_id: event.userId,
-    events: [event.params ? {
-      name: event.name,
-      params: { ...event.params, user_id: event.userId },
-    } : { name: event.name, params: { user_id: event.userId } }],
-  }).catch(e => console.log(e));
+export function logEvent(userIdProvider: Context | string, name: string, params?: Record<string, any>): void {
+  // if (event.userId === adminUserId) return;
+  emulateSendEvent({
+    userId: (typeof userIdProvider === "string" ? userIdProvider : getUserIdFromCtx(userIdProvider)),
+    name,
+    params,
+  }).then();
+}
+
+export function logAdminEvent(name: string, params?: Record<string, any>): void {
+  emulateSendEvent({ userId: "admin", name, params }).then();
 }
 
 export function logUserGroupChange(userId: string, group: string): void {
-  if (userId === adminUserId) return;
-  axios.post(gaUrl, {
-    client_id: userId,
-    user_id: userId,
-    user_properties: {
-      group: { value: group },
-    },
-    events: [{
+  // if (userId === adminUserId) return;
+  emulateUserPropertiesUpdate({ userId, properties: { group } })
+    .then(() => emulateSendEvent({
+      userId,
       name: "group_change",
-      params: { group, user_id: userId },
-    }],
-  }).catch(e => console.log(e));
+      params: { group },
+    }));
 }

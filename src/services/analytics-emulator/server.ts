@@ -11,7 +11,7 @@ export function startAnalyticsPageServer(): Promise<void> {
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>${req.query.pageTitle}</title>
+  <title>${titlesMap[req.path] || req.path}</title>
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-HYFTVXK74M"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -28,3 +28,15 @@ export function startAnalyticsPageServer(): Promise<void> {
 
   return new Promise<void>(resolve => { app.listen(analyticsServerPort, resolve); });
 }
+
+const titlesMap: Record<string, string> = {
+  "/feedback_open": "Обратная связь",
+  "/feedback_send": "Обратная связь",
+  "/start_command": "Добро пожаловать",
+  "/help_command": "Помощь",
+  "/settings": "Настройки",
+  "/leaderboard_view": "Лидерборд",
+  "/timetable_view": "Расписание",
+  "/group_change": "Изменение группы",
+  "/unrecognized": "Неопознаный текст",
+};

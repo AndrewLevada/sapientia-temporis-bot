@@ -1,6 +1,5 @@
 import { Context, Markup, Telegraf } from "telegraf";
-import { logEvent } from "../services/analytics-service";
-import { getUserIdFromCtx } from "../utils";
+import { logEvent, logPageView } from "../services/analytics-service";
 import { changeUserInfo } from "./user-info-change";
 import { adminUsername } from "../env";
 
@@ -13,13 +12,22 @@ const settingsKeyboard = Markup.inlineKeyboard([
 
 export function bindGeneral(bot: Telegraf) {
   bot.start((ctx: Context) => {
-    logEvent({ userId: getUserIdFromCtx(ctx), name: "start_command" });
+    logEvent(ctx, "start_command");
     ctx.reply("Доброе утро! Я умею показывать актуальное расписание Лицея 50 при ДГТУ")
       .then(() => changeUserInfo(ctx as any));
   });
 
-  bot.help(ctx => ctx.reply(`Бот расписаний Лицея 50 при ДГТУ. При возникновении проблем писать @${adminUsername}`));
+  bot.help(ctx => {
+    logEvent(ctx, "help_command");
+    ctx.reply(`Бот расписаний Лицея 50 при ДГТУ. При возникновении проблем писать @${adminUsername}`);
+  });
 
-  bot.hears("✨ Дополнительно", ctx => ctx.reply("Настройки. 🆕 Появилась возможность оставить обратную связь, жду ваш отзыв!", settingsKeyboard)); // Temp
-  bot.hears("✨ Дополнительно ✨", ctx => ctx.reply("Настройки", settingsKeyboard));
+  bot.hears("✨ Дополнительно", ctx => replyWithSettings(ctx, true)); // Temp
+  bot.hears("✨ Дополнительно ✨", ctx => replyWithSettings(ctx, false));
+}
+
+function replyWithSettings(ctx: Context, isOldCall: boolean) {
+  logPageView(ctx, "/settings");
+  if (isOldCall) ctx.reply("Настройки. 🆕 Появилась возможность оставить обратную связь, жду ваш отзыв!", settingsKeyboard).then();
+  else ctx.reply("Настройки", settingsKeyboard).then();
 }
