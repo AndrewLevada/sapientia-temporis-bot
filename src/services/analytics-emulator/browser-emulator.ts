@@ -26,10 +26,10 @@ export async function emulateSendEvent(e: Event): Promise<void> {
   });
 }
 
-export async function emulateUserPropertiesUpdate(e: UserPropertyUpdated): Promise<void> {
-  emulatePageView({ userId: e.userId, url: null }).then(page => {
+export function emulateUserPropertiesUpdate(e: UserPropertyUpdated): Promise<void> {
+  return emulatePageView({ userId: e.userId, url: null }).then(page => {
     e.properties = { ...e.properties, crm_id: e.userId };
-    page.evaluate((v: string) => {
+    return page.evaluate((v: string) => {
       const event = JSON.parse(v);
       gtag("set", "user_properties", event.properties);
     }, JSON.stringify(e));
@@ -77,7 +77,7 @@ async function loadPage(page: Page, e: PageViewEvent): Promise<void> {
       // gtag("set", "user_properties", { crm_id: userId });
     }, e.userId);
   }
-  await page.click("body");
+  return page.click("body");
 }
 
 function constructEmulatedUrl(e: PageViewEvent): string {

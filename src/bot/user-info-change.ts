@@ -48,18 +48,20 @@ function processGroupChange(ctx: TextContext, userId: string) {
   const group = ctx.message.text.toLowerCase().replace(" ", "");
 
   if (sessions[userId].type === "student")
-    if (groups[group]) {
-      logUserGroupChange(getUserIdFromCtx(ctx as Context), group);
-      setUserInfo(userId, {
-        type: "student",
-        group: groups[group],
-        name: ctx.from?.first_name,
-      }).then(() => {
+    if (groups[group])
+      Promise.all([
+        logUserGroupChange(getUserIdFromCtx(ctx as Context), group),
+        setUserInfo(userId, {
+          type: "student",
+          group: groups[group],
+          name: ctx.from?.first_name,
+        }),
+      ]).then(() => {
         resetUserSession(userId);
         ctx.reply("Отлично! Расписание на сегодня:", defaultKeyboard)
           .then(() => replyWithTimetableForDelta(ctx, 0));
       });
-    } else ctx.reply("Некорректный класс! Повтори ввод").then();
+    else ctx.reply("Некорректный класс! Повтори ввод").then();
   else if (sessions[userId].type === "teacher") {
     const t = searchForTeacher(group);
     if (t) {

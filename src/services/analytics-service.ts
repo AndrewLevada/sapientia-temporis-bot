@@ -1,9 +1,7 @@
 import { Context } from "telegraf";
 import { emulateSendEvent, emulateUserPropertiesUpdate, emulatePageView } from "./analytics-emulator/browser-emulator";
 import { getUserIdFromCtx } from "../utils";
-
-// eslint-disable-next-line max-len
-// const gaUrl = `https://google-analytics.com/mp/collect?api_secret=${process.env.GA_API_KEY}&measurement_id=G-HYFTVXK74M`;
+import { adminUserId } from "../env";
 
 export interface PageViewEvent {
   userId: string;
@@ -22,26 +20,24 @@ export interface UserPropertyUpdated {
 }
 
 export function logPageView(ctx: Context, url: string): void {
-  // if (e.userId === adminUserId) return;
-  emulatePageView({ userId: getUserIdFromCtx(ctx), url }).then();
+  const userId = getUserIdFromCtx(ctx);
+  if (userId === adminUserId) return;
+  emulatePageView({ userId, url }).then();
 }
 
 export function logEvent(userIdProvider: Context | string, name: string, params?: Record<string, any>): void {
-  // if (event.userId === adminUserId) return;
-  emulateSendEvent({
-    userId: (typeof userIdProvider === "string" ? userIdProvider : getUserIdFromCtx(userIdProvider)),
-    name,
-    params,
-  }).then();
+  const userId = typeof userIdProvider === "string" ? userIdProvider : getUserIdFromCtx(userIdProvider);
+  if (userId === adminUserId) return;
+  emulateSendEvent({ userId, name, params }).then();
 }
 
 export function logAdminEvent(name: string, params?: Record<string, any>): void {
   emulateSendEvent({ userId: "admin", name, params }).then();
 }
 
-export function logUserGroupChange(userId: string, group: string): void {
-  // if (userId === adminUserId) return;
-  emulateUserPropertiesUpdate({ userId, properties: { group } })
+export function logUserGroupChange(userId: string, group: string): Promise<void> {
+  if (userId === adminUserId) return Promise.resolve();
+  return emulateUserPropertiesUpdate({ userId, properties: { group } })
     .then(() => emulateSendEvent({
       userId,
       name: "group_change",
