@@ -35,12 +35,15 @@ export function logAdminEvent(name: string, params?: Record<string, any>): void 
   emulateSendEvent({ userId: "admin", name, params }).then();
 }
 
-export function logUserGroupChange(userId: string, group: string): Promise<void> {
+export function logUserGroupChange(userId: string, group: string, onlyChangeProperty?: boolean): Promise<void> {
   if (userId === adminUserId) return Promise.resolve();
   return emulateUserPropertiesUpdate({ userId, properties: { group } })
-    .then(() => emulateSendEvent({
-      userId,
-      name: "group_change",
-      params: { group },
-    }));
+    .then(() => {
+      if (onlyChangeProperty) return Promise.resolve();
+      return emulateSendEvent({
+        userId,
+        name: "group_change",
+        params: { group },
+      }).then();
+    });
 }
