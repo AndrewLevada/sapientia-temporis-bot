@@ -1,4 +1,4 @@
-import { Telegraf } from "telegraf";
+import { Markup, Telegraf } from "telegraf";
 import { getUsersIdsByGroup } from "./user-service";
 import { groups } from "./groups-service";
 import { logAdminEvent } from "./analytics-service";
@@ -13,7 +13,9 @@ export function broadcastMessage(bot: Telegraf, group: SpecialBroadcastGroup | s
   return getUsersIdsByGroup(specialBroadcastGroupStrings.includes(group) ? group : groups[group]).then(ids => {
     const promises = [];
     let fails = 0;
-    for (const id of ids) promises.push(bot.telegram.sendMessage(id, text).catch(onFail));
+    for (const id of ids) promises.push(bot.telegram.sendMessage(id, text, Markup.inlineKeyboard([
+      [{ text: "🤍️", callback_data: "broadcast_response" }],
+    ])).catch(onFail));
     return Promise.all(promises).then(() => `${ids.length - fails} / ${ids.length}`);
 
     function onFail() {

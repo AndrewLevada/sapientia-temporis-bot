@@ -39,4 +39,5 @@ const titlesMap: Record<string, string> = {
   "/timetable_view": "Расписание",
   "/group_change": "Изменение группы",
   "/unrecognized": "Неопознаный текст",
+  "/broadcast_response": "Ответ на трансляцию",
 };

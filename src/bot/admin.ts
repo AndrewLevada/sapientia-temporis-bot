@@ -1,8 +1,10 @@
-import { Context, Telegraf } from "telegraf";
+import { Context, Markup, Telegraf } from "telegraf";
+import { CallbackQuery } from "typegram/callback";
 import { getTeachersList } from "../services/user-service";
 import { groups, inverseTeachers } from "../services/groups-service";
 import { broadcastMessage, SpecialBroadcastGroup, specialBroadcastGroupStrings } from "../services/broadcast-service";
 import { adminUsername } from "../env";
+import { logEvent } from "../services/analytics-service";
 
 type TextContext = Context & { message: { text: string } };
 
@@ -31,6 +33,15 @@ export function bindAdmin(bot: Telegraf) {
     else if (broadcastState.status === "group") processBroadcastGroup(ctx);
     else if (broadcastState.status === "message") processBroadcastMessage(ctx);
     else if (broadcastState.status === "confirmation") processBroadcastConfirmation(bot, ctx);
+  });
+
+  bot.on("callback_query", (ctx, next) => {
+    if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "broadcast_response") {
+      logEvent(ctx, "broadcast_response");
+      ctx.editMessageReplyMarkup(Markup.inlineKeyboard([
+        [{ text: "❤️", callback_data: "broadcast_response_" }],
+      ]).reply_markup);
+    } else next();
   });
 }
 
