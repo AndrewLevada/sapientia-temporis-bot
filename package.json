@@ -13,7 +13,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node --experimental-modules dist/app.js",
-    "serve": "npm run-script build & npm run-script start"
+    "serve": "npm run-script build & npm run-script start",
+    "tools": "npm run-script build & node dist/tools/launch.js"
   },
   "dependencies": {
     "axios": "^0.24.0",
