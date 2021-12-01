@@ -9,7 +9,7 @@ export function init() {
   cookiesRef = db.ref("emulatorCookies");
 }
 
-export function getEmulatorCookies(userId: string): Promise<any | null> {
+export function getEmulatorCookies(userId: string): Promise<any[] | null> {
   return cookiesRef.child(userId).once("value").then(snap => (snap.val() ? JSON.parse(snap.val()) : null));
 }
 
