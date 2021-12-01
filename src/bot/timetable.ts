@@ -10,6 +10,7 @@ import { DateTimetable, getTimetable } from "../services/timetable-service";
 import { changeUserInfo } from "./user-info-change";
 import { defaultKeyboard } from "./general";
 import { resetUserSession } from "./env";
+import { inverseGroups, inverseTeachers } from "../services/groups-service";
 
 const deltaDayStrings = ["Вчера", "Сегодня", "Завтра"];
 
@@ -88,5 +89,9 @@ function collectAdditionalUserData(ctx: Context, userId: string, userInfo: UserI
     if (additionalInfo !== {}) setUserInfo(userId, { ...userInfo, ...additionalInfo }).then();
   }
 
-  return logUserGroupChange(userId, userInfo.group, true); // Temp
+  return logUserGroupChange(
+    userId,
+    userInfo.type === "student" ? inverseGroups[userInfo.group] : inverseTeachers[userInfo.group],
+    true,
+  ); // Temp
 }
