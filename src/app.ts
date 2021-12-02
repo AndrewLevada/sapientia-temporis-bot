@@ -2,6 +2,7 @@ import { Telegraf } from "telegraf";
 import * as admin from "firebase-admin";
 import { init as initTimetableService } from "./services/timetable-service";
 import { init as initFeedbackService } from "./services/feedback-service";
+import { init as initErrorReportingService, reportError } from "./services/error-reporting-service";
 import { init as initEmulatorCookiesService } from "./services/analytics-emulator/emulator-cookies-service";
 import { init as initUserService } from "./services/user-service";
 import { bindUserInfoChange } from "./bot/user-info-change";
@@ -20,6 +21,7 @@ admin.initializeApp({
   databaseURL: process.env.FIREBASE_DATABASE_URL as string,
 });
 
+initErrorReportingService();
 initTimetableService();
 initUserService();
 initFeedbackService();
@@ -36,22 +38,33 @@ function startBot() {
     process.once("SIGTERM", () => bot.stop("SIGTERM"));
     process.on("unhandledRejection", reason => {
       console.error("unhandledRejection", reason);
+      reportError(reason).then();
       sendMessageToAdmin(bot, `⚠️ Unhandled Rejection: \n\n${reason}`).then();
     });
     process.on("uncaughtException", err => {
       console.error("uncaughtException", err);
+      reportError(err).then();
       sendMessageToAdmin(bot, `⚠️ Unhandled Exception: \n\n${err}`).then();
     });
   });
 }
 
 function bindBot(bot: Telegraf) {
+  bot.use((ctx, next) => {
+    try {
+      next().catch(err => reportError(err, ctx));
+    } catch (err) {
+      reportError(err, ctx).then();
+    }
+  });
+
   bindGeneral(bot);
   bindUserInfoChange(bot);
   bindTimetable(bot);
   bindLeaderboard(bot);
   bindFeedback(bot);
   bindAdmin(bot);
+
   bot.on("text", ctx => {
     logEvent(ctx, "unrecognized", { text: ctx.message.text });
     ctx.reply("Для получения информации /help", defaultKeyboard);
