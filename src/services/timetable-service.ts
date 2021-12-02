@@ -4,6 +4,7 @@ import Reference = database.Reference;
 import Database = database.Database;
 import { inverseGroups, isGroupUpper, isGroupWithPairs } from "./groups-service";
 import { UserInfo, UserType } from "./user-service";
+import { sanitizeTextForMD } from "../utils";
 
 let hashedVersionRef!: Reference;
 let subjectsRef!: Reference;
@@ -224,7 +225,7 @@ function getLessonText(lesson: Lesson | undefined, lessonType: LessonType, i: nu
 function getStudentLessonText(lesson: StudentLesson | undefined, type: LessonType, i: number): string {
   if (!lesson) return `${getLessonNumber(type, i)}\\) Окно`;
 
-  const subject = subjects[lesson.s[0]] || "?";
+  const subject = sanitizeTextForMD(subjects[lesson.s[0]]) || "?";
   const room = rooms[lesson.r[0]] || "?";
   const roomMore = lesson.g ? ` и ${rooms[lesson.r[1]]}` : "";
   const timeArray = getLessonTimeArray(i, type);
@@ -239,7 +240,7 @@ function getTeacherLessonText(lesson: TeacherLesson | undefined, type: LessonTyp
   if (!lesson) return `${getLessonNumber(type, i)}\\) Окно`;
   if (lesson.s === "M") return `${getLessonNumber(type, i)}\\) Методический час`;
 
-  const subject = subjects[lesson.s] || "?";
+  const subject = sanitizeTextForMD(subjects[lesson.s]) || "?";
   const group = lesson.c ? inverseGroups[lesson.c[0]].toUpperCase() : "?";
   const room = lesson.r ? rooms[lesson.r] || "?" : "?";
   const timeArray = getLessonTimeArray(i, type);

@@ -20,3 +20,12 @@ export function getUserIdFromCtx(ctx: { message?: unknown } & { update?: { callb
 }
 
 export type TextContext = Context & { message: { text: string } };
+
+export function sanitizeTextForMD(text: string): string {
+  return text
+    .replace(/\./g, "\\.")
+    .replace(/-/g, "\\-")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)")
+    .replace(/\*/g, "\\*");
+}
