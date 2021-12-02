@@ -35,8 +35,8 @@ export function replyWithTimetableForDelta(ctx: Context, dayDelta: number) {
       return;
     }
 
-    collectAdditionalUserData(ctx, userId, info)
-      .then(() => logEvent(userId, "timetable_view", { type: "delta", dayDelta }));
+    logEvent(userId, "timetable_view", { type: "delta", dayDelta });
+    collectAdditionalUserData(ctx, userId, info);
 
     const now = new Date();
     const day = getDayOfWeekWithDelta(dayDelta);
@@ -59,8 +59,8 @@ export function replyWithTimetableForDay(ctx: Context, day: number) {
       return;
     }
 
-    collectAdditionalUserData(ctx, userId, info)
-      .then(() => logEvent(userId, "timetable_view", { type: "week", day }));
+    logEvent(userId, "timetable_view", { type: "week", day });
+    collectAdditionalUserData(ctx, userId, info);
 
     const now = new Date();
     const date = new Date(now.valueOf()
@@ -80,7 +80,7 @@ function getDayAwareWeekKeyboard(): any {
   return Markup.keyboard(buttons);
 }
 
-function collectAdditionalUserData(ctx: Context, userId: string, userInfo: UserInfo): Promise<void> {
+function collectAdditionalUserData(ctx: Context, userId: string, userInfo: UserInfo): void {
   if (!userInfo.username || !userInfo.name) {
     const additionalInfo: Partial<UserInfo> = {};
     if (ctx.from?.first_name || ctx.from?.last_name)
@@ -89,7 +89,7 @@ function collectAdditionalUserData(ctx: Context, userId: string, userInfo: UserI
     if (additionalInfo !== {}) setUserInfo(userId, { ...userInfo, ...additionalInfo }).then();
   }
 
-  return logUserGroupChange(
+  logUserGroupChange(
     userId,
     userInfo.type === "student" ? inverseGroups[userInfo.group] : inverseTeachers[userInfo.group],
     true,

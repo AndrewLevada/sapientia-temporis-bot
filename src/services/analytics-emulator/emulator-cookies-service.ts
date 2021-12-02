@@ -9,10 +9,10 @@ export function init() {
   cookiesRef = db.ref("emulatorCookies");
 }
 
-export function getEmulatorCookies(userId: string): Promise<any[] | null> {
+export function getUserCookies(userId: string): Promise<any[] | null> {
   return cookiesRef.child(userId).once("value").then(snap => (snap.val() ? JSON.parse(snap.val()) : null));
 }
 
-export function setEmulatorCookies(userId: string, cookies: any): Promise<void> {
+export function setUserCookies(userId: string, cookies: any): Promise<void> {
   return cookiesRef.child(userId).set(JSON.stringify(cookies));
 }

@@ -1,16 +1,14 @@
 import puppeteer, { Browser, Page } from "puppeteer";
 import { Event, PageViewEvent, UserPropertyUpdated } from "../analytics-service";
 import { analyticsServerPort } from "./server";
-import { getEmulatorCookies, setEmulatorCookies } from "./emulator-cookies-service";
+import { getUserCookies, setUserCookies } from "./emulator-cookies-service";
+import { getBrowserSession, popFromEmulationRequestsQueue,
+  pushToEmulationRequestsQueue,
+  removeBrowserSession,
+  setBrowserSession } from "./emulator-sessions-storage";
 
+const sessionIdleTime = 14000;
 let browser!: Browser;
-const sessions: Record<string, EmulatedSession> = {};
-
-interface EmulatedSession {
-  page: Page;
-  timeout?: ReturnType<typeof setTimeout>;
-  queue?: { callback: ((page: Page)=> void), event: PageViewEvent }[];
-}
 
 export function startAnalyticsBrowserEmulator(): Promise<void> {
   return puppeteer.launch({ headless: true, args: ["--no-sandbox"] }).then(v => {
@@ -19,74 +17,70 @@ export function startAnalyticsBrowserEmulator(): Promise<void> {
 }
 
 export function emulateSendEvent(e: Event): Promise<void> {
-  return emulatePageView({ userId: e.userId, url: `/${e.name}` })
-    .then(page => page.evaluate((v: string) => {
+  return emulatePageView(
+    { userId: e.userId, url: `/${e.name}` },
+    page => page.evaluate((v: string) => {
       const event = JSON.parse(v);
       gtag("event", event.name, event.params || {});
-    }, JSON.stringify(e)))
-    .then(() => runQueuedViews(e.userId));
+    }, JSON.stringify(e)).then(() => page.waitForNetworkIdle()),
+  );
 }
 
 export function emulateUserPropertiesUpdate(e: UserPropertyUpdated): Promise<void> {
-  return emulatePageView({ userId: e.userId, url: null }).then(page => {
+  return emulatePageView({ userId: e.userId, url: null }, page => {
     e.properties = { ...e.properties, crm_id: e.userId };
     return page.evaluate((v: string) => {
       const event = JSON.parse(v);
       gtag("set", "user_properties", event.properties);
-    }, JSON.stringify(e));
-  }).then(() => runQueuedViews(e.userId));
+    }, JSON.stringify(e)).then(() => page.waitForNetworkIdle());
+  });
 }
 
-export function safeEmulatePageView(e: PageViewEvent): Promise<void> {
-  return emulatePageView(e).then(() => runQueuedViews(e.userId));
-}
+export function emulatePageView(e: PageViewEvent, callback?: (page: Page)=> Promise<void>): Promise<void> {
+  // const checkHash = Math.floor(Math.random() * 1000);
+  // console.log(`emulatePageView start ${checkHash} ${e.url}`);
 
-function emulatePageView(e: PageViewEvent): Promise<Page> {
-  const session = sessions[e.userId];
-  const checkHash = Math.floor(Math.random() * 1000);
-  console.log(`emulatePageView start ${checkHash} ${e.url}`);
-  if (shouldQueueViewEmulation(session)) {
-    console.log("as queue");
-    return new Promise<Page>(resolve => {
-      if (!session.queue) sessions[e.userId].queue = [];
-      sessions[e.userId].queue!.push({ callback: resolve, event: e });
-    });
+  const session = getBrowserSession(e.userId);
+  if (session && session.state !== "idle") {
+    // console.log("as queue");
+    pushToEmulationRequestsQueue({ callback, event: e });
+    return Promise.resolve();
   }
-  console.log("as now");
+  // console.log("as now");
 
-  return (session ? continueSession(session, e) : createNewPage(e)).then(page => {
-    console.log(`emulatePageView done ${checkHash} ${e.url}`);
-    sessions[e.userId]!.timeout = setTimeout(() => {
-      if (sessions[e.userId]) delete sessions[e.userId];
-      page.cookies().then(cookies => { // Issue here (page is closed sometimes)
-        setEmulatorCookies(e.userId, cookies);
-        page.close();
-      });
-    }, 14000);
-    return page;
+  setBrowserSession(e.userId, { state: "updating" });
+  return (session ? continueSession(e) : createNewPage(e)).then(() => {
+    (callback ? callback(getBrowserSession(e.userId)!.page!) : Promise.resolve()).then(() => {
+      setBrowserSession(e.userId, { state: "idle" });
+      // console.log(`emulatePageView done ${checkHash} ${e.url}`);
+      if (!tryRunQueuedViews(e.userId))
+        setBrowserSession(e.userId, { timeout: setTimeout(() => {
+          setBrowserSession(e.userId, { state: "finishing" });
+          // console.log(`emulatePageView timeout ${checkHash} ${e.url}`);
+          getBrowserSession(e.userId)!.page!.cookies()
+            .then(cookies => Promise.all([
+              setUserCookies(e.userId, cookies),
+              getBrowserSession(e.userId)!.context!.close(),
+            ]).then(() => removeBrowserSession(e.userId)));
+        }, sessionIdleTime) });
+    });
   });
 }
 
-function shouldQueueViewEmulation(session: EmulatedSession): boolean {
-  return session && (!session.timeout || (!!session.queue && session.queue.length !== 0));
+function createNewPage(e: PageViewEvent): Promise<void> {
+  return browser.createIncognitoBrowserContext()
+    .then(context => context.newPage()
+      .then(page => page.emulate(puppeteer.devices["Pixel 4"])
+        .then(() => getUserCookies(e.userId))
+        .then(cookies => (cookies ? Promise.all(cookies.map(c => page.setCookie(c))) : Promise.resolve()).then())
+        .then(() => {
+          setBrowserSession(e.userId, { context, page });
+          return loadPage(page, e);
+        })));
 }
 
-function createNewPage(e: PageViewEvent): Promise<Page> {
-  sessions[e.userId] = { page: null as unknown as Page };
-  return browser.newPage().then(page => {
-    sessions[e.userId] = { page };
-    return page.emulate(puppeteer.devices["Pixel 4"])
-      .then(() => getEmulatorCookies(e.userId))
-      .then(cookies => (cookies ? Promise.all(cookies.map(c => page.setCookie(c))) : Promise.resolve()).then())
-      .then(() => loadPage(page, e))
-      .then(() => page);
-  });
-}
-
-function continueSession(session: EmulatedSession, e: PageViewEvent): Promise<Page> {
-  sessions[e.userId].timeout = undefined;
-  if (session.timeout) clearTimeout(session.timeout);
-  return loadPage(session.page, e).then(() => session.page);
+function continueSession(e: PageViewEvent): Promise<void> {
+  return loadPage(getBrowserSession(e.userId)!.page!, e);
 }
 
 function loadPage(page: Page, e: PageViewEvent): Promise<void> {
@@ -94,10 +88,11 @@ function loadPage(page: Page, e: PageViewEvent): Promise<void> {
   if (!shouldPageNavigate(e, page)) return page.click("body");
   return page.goto(constructEmulatedUrl(e))
     .then(() => page.evaluate((userId: string) => {
-      gtag("config", "G-HYFTVXK74M", { user_id: userId, debug_mode: true });
+      gtag("config", "G-HYFTVXK74M", { user_id: userId });
       gtag("set", "user_properties", { crm_id: userId });
     }, e.userId))
-    .then(() => page.click("body"));
+    .then(() => page.click("body"))
+    .then(() => page.waitForNetworkIdle());
 }
 
 function shouldPageNavigate(e: PageViewEvent, page: Page): boolean {
@@ -108,13 +103,13 @@ function constructEmulatedUrl(e: PageViewEvent): string {
   return `http://localhost:${analyticsServerPort}${e.url}`;
 }
 
-function runQueuedViews(userId: string): void {
-  const queue = sessions[userId]?.queue;
-  console.log(`runQueuedViews ${queue?.length}`);
-  if (!queue || queue.length === 0) return;
-  const o = queue.shift()!;
-  emulatePageView(o.event).then(page => o.callback(page))
-    .then(() => runQueuedViews(userId));
+function tryRunQueuedViews(userId: string): boolean {
+  // console.log("test queue");
+  const request = popFromEmulationRequestsQueue(userId);
+  if (!request) return false;
+  // console.log("queue pop");
+  emulatePageView(request.event, request.callback).then();
+  return true;
 }
 
 declare function gtag(...args: any[]): void;

@@ -1,11 +1,10 @@
 import { Context } from "telegraf";
-import { emulateSendEvent,
-  emulateUserPropertiesUpdate,
-  safeEmulatePageView } from "./analytics-emulator/browser-emulator";
+import { emulatePageView, emulateSendEvent,
+  emulateUserPropertiesUpdate } from "./analytics-emulator/browser-emulator";
 import { getUserIdFromCtx } from "../utils";
 import { adminUserId } from "../env";
 
-const doIgnoreAdmin = false;
+const doIgnoreAdmin = true;
 
 export interface PageViewEvent {
   userId: string;
@@ -26,7 +25,7 @@ export interface UserPropertyUpdated {
 export function logPageView(ctx: Context, url: string): void {
   const userId = getUserIdFromCtx(ctx);
   if (userId === adminUserId && doIgnoreAdmin) return;
-  safeEmulatePageView({ userId, url }).then();
+  emulatePageView({ userId, url }).then();
 }
 
 export function logEvent(userIdProvider: Context | string, name: string, params?: Record<string, any>): void {
@@ -39,9 +38,9 @@ export function logAdminEvent(name: string, params?: Record<string, any>): void 
   emulateSendEvent({ userId: "admin", name, params }).then();
 }
 
-export function logUserGroupChange(userId: string, group: string, onlyChangeProperty?: boolean): Promise<void> {
-  if (userId === adminUserId && doIgnoreAdmin) return Promise.resolve();
-  return emulateUserPropertiesUpdate({ userId, properties: { group } })
+export function logUserGroupChange(userId: string, group: string, onlyChangeProperty?: boolean): void {
+  if (userId === adminUserId && doIgnoreAdmin) return;
+  emulateUserPropertiesUpdate({ userId, properties: { group } })
     .then(() => {
       if (onlyChangeProperty) return Promise.resolve();
       return emulateSendEvent({
