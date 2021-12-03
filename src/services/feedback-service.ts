@@ -46,7 +46,7 @@ function recordFeedback(report: FeedbackReport): Promise<void> {
 
 function sendFeedbackToAdmin(bot: Telegraf, report: FeedbackReport): Promise<void> {
   let text = "🧾 Новый отзыв! \n";
-  text += `Отправитель ${report.userFirstName} (@${report.userAlias}) из группы ${report.userType} ${report.userGroup} \n`;
+  text += `Отправитель ${report.userFirstName} (@${report.userAlias}, userId-${report.userId}) из группы ${report.userType} ${report.userGroup} \n`;
   text += "Текст: \n\n";
   text += report.text;
   return bot.telegram.sendMessage(adminUserId, text).then();
