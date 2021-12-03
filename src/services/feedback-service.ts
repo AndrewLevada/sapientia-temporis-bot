@@ -13,6 +13,7 @@ interface FeedbackReport {
   userFirstName: string;
   userType: UserType;
   userGroup: string;
+  userAlias: string | undefined;
   text: string;
   timestamp: string;
 }
@@ -31,6 +32,7 @@ export function reportFeedback(bot: Telegraf, userId: string, firstName: string,
       userFirstName: firstName,
       userGroup: userInfo.type === "student" ? inverseGroups[userInfo.group] : inverseTeachers[userInfo.group],
       userType: userInfo.type,
+      userAlias: userInfo.username,
       timestamp: now.toString(),
     };
 
@@ -44,7 +46,7 @@ function recordFeedback(report: FeedbackReport): Promise<void> {
 
 function sendFeedbackToAdmin(bot: Telegraf, report: FeedbackReport): Promise<void> {
   let text = "🧾 Новый отзыв! \n";
-  text += `Отправитель ${report.userFirstName} из группы ${report.userType} ${report.userGroup} \n`;
+  text += `Отправитель ${report.userFirstName} (@${report.userAlias}) из группы ${report.userType} ${report.userGroup} \n`;
   text += "Текст: \n\n";
   text += report.text;
   return bot.telegram.sendMessage(adminUserId, text).then();
