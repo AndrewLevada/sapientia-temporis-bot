@@ -24,7 +24,7 @@ export function emulateSendEvent(e: Event): Promise<void> {
       const event = JSON.parse(v);
       event.params.event_callback = resolve;
       gtag("event", event.name, event.params);
-    }), JSON.stringify(e || {})).then(),
+    }), JSON.stringify({ params: {}, ...e })).then(),
   );
 }
 
