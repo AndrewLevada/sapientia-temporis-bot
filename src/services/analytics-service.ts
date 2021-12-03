@@ -40,13 +40,9 @@ export function logAdminEvent(name: string, params?: Record<string, any>): void 
 
 export function logUserGroupChange(userId: string, group: string, onlyChangeProperty?: boolean): void {
   if (userId === adminUserId && doIgnoreAdmin) return;
-  emulateUserPropertiesUpdate({ userId, properties: { group } })
-    .then(() => {
-      if (onlyChangeProperty) return Promise.resolve();
-      return emulateSendEvent({
-        userId,
-        name: "group_change",
-        params: { group },
-      }).then();
-    });
+  (onlyChangeProperty ? Promise.resolve() : emulateSendEvent({
+    userId,
+    name: "group_change",
+    params: { group },
+  })).then(() => emulateUserPropertiesUpdate({ userId, properties: { group } }));
 }

@@ -12,7 +12,7 @@ export function startAnalyticsPageServer(): Promise<void> {
 <head>
   <meta charset="UTF-8">
   <title>${titlesMap[req.path] || req.path}</title>
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HYFTVXK74M"></script>
+  <script src="https://www.googletagmanager.com/gtag/js?id=G-HYFTVXK74M"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments);}
