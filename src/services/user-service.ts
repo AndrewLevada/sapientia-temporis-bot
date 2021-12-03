@@ -19,6 +19,7 @@ export interface UserInfo {
   group: string;
   name?: string;
   username?: string;
+  isLimitedInGroupChange?: boolean;
 }
 
 export type UserType = "student" | "teacher";

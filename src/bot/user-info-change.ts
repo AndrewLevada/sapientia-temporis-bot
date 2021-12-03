@@ -1,9 +1,9 @@
 import { Context, Markup, Telegraf } from "telegraf";
 import { CallbackQuery } from "typegram/callback";
-import { groups, searchForTeacher } from "../services/groups-service";
+import { decodeGroupFromUserInfo, groups, searchForTeacher } from "../services/groups-service";
 import { logUserGroupChange } from "../services/analytics-service";
 import { getUserIdFromCtx, TextContext } from "../utils";
-import { setUserInfo } from "../services/user-service";
+import { getUserInfo, setUserInfo } from "../services/user-service";
 import { sessions, resetUserSession } from "./env";
 import { replyWithTimetableForDelta } from "./timetable";
 import { defaultKeyboard } from "./general";
@@ -79,7 +79,13 @@ function processGroupChange(ctx: TextContext, userId: string) {
 
 export function changeUserInfo(ctx: { message?: any } & { update?: { callback_query?: any }} & Context): void {
   const userId: string = getUserIdFromCtx(ctx);
-  ctx.reply("Чем вы занимаетесь в лицее?", userTypeKeyboard).then();
-  if (!sessions[userId]) sessions[userId] = { state: "change-type" };
-  else sessions[userId].state = "change-type";
+  getUserInfo(userId).then(userInfo => {
+    if (userInfo && userInfo.isLimitedInGroupChange === true)
+      ctx.reply(`Оу! Вы изменили группу расписания слишком много раз. Теперь она зафиксирована как ${decodeGroupFromUserInfo(userInfo)}`).then();
+    else {
+      ctx.reply("Чем вы занимаетесь в лицее?", userTypeKeyboard).then();
+      if (!sessions[userId]) sessions[userId] = { state: "change-type" };
+      else sessions[userId].state = "change-type";
+    }
+  });
 }

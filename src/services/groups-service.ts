@@ -1,5 +1,7 @@
 // noinspection NonAsciiCharacters
 
+import { UserInfo } from "./user-service";
+
 export function isGroupWithPairs(group: string): boolean {
   // Only 10th and 11th
   return +group >= 42;
@@ -20,6 +22,11 @@ export function searchForTeacher(s: string): { fullName: string; code: string; }
       };
 
   return null;
+}
+
+export function decodeGroupFromUserInfo(userInfo: UserInfo): string {
+  if (userInfo.type === "student") return inverseGroups[userInfo.group];
+  return inverseTeachers[userInfo.group];
 }
 
 export const groups: Record<string, string> = {
