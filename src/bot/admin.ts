@@ -2,7 +2,7 @@ import { Context, Markup, Telegraf } from "telegraf";
 import { CallbackQuery } from "typegram/callback";
 import { getTeachersList } from "../services/user-service";
 import { groups, inverseTeachers } from "../services/groups-service";
-import { broadcastMessage, SpecialBroadcastGroup, specialBroadcastGroupStrings } from "../services/broadcast-service";
+import { BroadcastGroup, BroadcastGroupType, broadcastMessage } from "../services/broadcast-service";
 import { adminUsername } from "../env";
 import { logEvent } from "../services/analytics-service";
 
@@ -11,7 +11,7 @@ type TextContext = Context & { message: { text: string } };
 type BroadcastStatus = "none" | "group" | "message" | "confirmation";
 const broadcastState: {
   status: BroadcastStatus,
-  group: SpecialBroadcastGroup | string | null,
+  group: BroadcastGroup | null,
   text: string | null
 } = { status: "none", group: null, text: null };
 
@@ -25,7 +25,7 @@ export function bindAdmin(bot: Telegraf) {
   bot.command("/broadcast", ctx => {
     if (ctx.message.from.username !== adminUsername) return;
     broadcastState.status = "group";
-    ctx.reply("Хорошо, Перехожу в режим трансляции. Введите название группы для трансляции (10a, 10, students, teachers, all), cancel для отмены.");
+    ctx.reply("Хорошо, Перехожу в режим трансляции. Введите название группы для трансляции (10a, 10, students, teachers, all, userId), cancel для отмены.");
   });
 
   bot.on("text", (ctx, next) => {
@@ -52,11 +52,17 @@ function processBroadcastGroup(ctx: TextContext) {
     return;
   }
 
-  if (specialBroadcastGroupStrings.includes(group) || groups[group]) {
+  let groupType: BroadcastGroupType | null = null;
+  if (["all", "students", "teachers"].includes(group)) groupType = "section";
+  else if (["5", "6", "7", "8", "9", "10", "11"].includes(group)) groupType = "grade";
+  else if (!Number.isNaN(parseInt(group)) && parseInt(group) > 10 ** 7) groupType = "userId";
+  else if (groups[group]) groupType = "group";
+
+  if (groupType) {
     broadcastState.status = "message";
-    broadcastState.group = group;
-    ctx.reply(`Группа (${group}) определена. Теперь введите сообщение для трансляции`);
-  } else ctx.reply(`Некорректная группа (${group}). Повторите ввод`);
+    broadcastState.group = { type: groupType, value: group };
+    ctx.reply(`Группа (${group} as ${groupType}) определена. Теперь введите сообщение для трансляции`).then();
+  } else ctx.reply(`Некорректная группа (${group}). Повторите ввод`).then();
 }
 
 function processBroadcastMessage(ctx: TextContext) {

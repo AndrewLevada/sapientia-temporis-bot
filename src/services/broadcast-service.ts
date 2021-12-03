@@ -1,16 +1,18 @@
 import { Markup, Telegraf } from "telegraf";
 import { getUsersIdsByGroup } from "./user-service";
-import { groups } from "./groups-service";
 import { logAdminEvent } from "./analytics-service";
 import { adminUserId } from "../env";
 
-export type SpecialBroadcastGroup = "students" | "teachers" | "all" | "5" | "6" | "7" | "8" | "9" | "10" | "11";
-export const specialBroadcastGroupStrings = ["students", "teachers", "all", "5", "6", "7", "8", "9", "10", "11"];
+export type BroadcastGroupType = "section" | "grade" | "group" | "userId";
+export interface BroadcastGroup {
+  type: BroadcastGroupType;
+  value: string;
+}
 
-export function broadcastMessage(bot: Telegraf, group: SpecialBroadcastGroup | string, text: string): Promise<string> {
+export function broadcastMessage(bot: Telegraf, group: BroadcastGroup, text: string): Promise<string> {
   logAdminEvent("broadcast", { group, text });
 
-  return getUsersIdsByGroup(specialBroadcastGroupStrings.includes(group) ? group : groups[group]).then(ids => {
+  return getUsersIdsByGroup(group).then(ids => {
     const promises = [];
     let fails = 0;
     for (const id of ids) promises.push(bot.telegram.sendMessage(id, text, Markup.inlineKeyboard([
