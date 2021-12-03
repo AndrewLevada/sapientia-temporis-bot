@@ -161,20 +161,23 @@ function getLessonsAsPairs(timetable: Timetable, type: UserType, date: Date): st
   for (let j = 6; j > 0; j--) {
     const index: string[] = [getLessonIndex(date.getDay(), j * 2), getLessonIndex(date.getDay(), j * 2 - 1)];
     const lessons: (Lesson | undefined)[] = [timetable.schedule[index[0]], timetable.schedule[index[1]]];
+    let wasMutated = false;
 
     if (timetable.exchange) {
-      lessons[0] = mutateExchange(lessons[0], j * 2, timetable.exchange);
-      lessons[1] = mutateExchange(lessons[1], j * 2 - 1, timetable.exchange);
+      let wasAlsoMutated = false;
+      [lessons[0], wasMutated] = mutateExchange(lessons[0], j * 2, timetable.exchange);
+      [lessons[1], wasAlsoMutated] = mutateExchange(lessons[1], j * 2 - 1, timetable.exchange);
+      if (wasAlsoMutated) wasMutated = true;
     }
 
     if (isPair(type, lessons)) {
       if (lessons[0] || result.length > 0)
-        result.push(getLessonText(lessons[0], "pair", j * 2, type));
+        result.push(getLessonText(lessons[0], "pair", j * 2, type, wasMutated));
     } else {
       if (lessons[0] || lessons[1] || result.length > 0)
-        result.push(getLessonText(lessons[0], "lesson", j * 2, type));
+        result.push(getLessonText(lessons[0], "lesson", j * 2, type, wasMutated));
       if (lessons[1] || result.length > 0)
-        result.push(getLessonText(lessons[1], "lesson", j * 2 - 1, type));
+        result.push(getLessonText(lessons[1], "lesson", j * 2 - 1, type, wasMutated));
     }
   }
 
@@ -194,12 +197,13 @@ function getLessons(timetable: Timetable, type: UserType, date: Date): string[] 
   for (let i = 13; i > 0; i--) {
     const index: string = getLessonIndex(date.getDay(), i);
     let lesson: Lesson | undefined = timetable.schedule[index];
+    let wasMutated = false;
 
     if (timetable.exchange)
-      lesson = mutateExchange(lesson, i, timetable.exchange);
+      [lesson, wasMutated] = mutateExchange(lesson, i, timetable.exchange);
 
     if (lesson || result.length > 0)
-      result.push(getLessonText(lesson, "lesson", i, type));
+      result.push(getLessonText(lesson, "lesson", i, type, wasMutated));
   }
 
   return result;
@@ -209,17 +213,21 @@ function getLessonIndex(day: number, i: number): string {
   return `${day}${i < 10 ? "0" : ""}${i}`;
 }
 
-function mutateExchange(lesson: Lesson | undefined, index: number, exchange: any): Lesson | undefined {
-  if (!lesson) return undefined;
+function mutateExchange(lesson: Lesson | undefined, index: number, exchange: any): [Lesson | undefined, boolean] {
   const rule: any = exchange[index.toString()];
-  if (!rule) return lesson;
-  if (rule.s === "F") return undefined;
-  return rule;
+  if (!rule) return [lesson, false];
+  if (rule.s === "F") return [undefined, true];
+  return [rule, true];
 }
 
-function getLessonText(lesson: Lesson | undefined, lessonType: LessonType, i: number, userType: UserType): string {
-  if (userType === "student") return getStudentLessonText(lesson as StudentLesson, lessonType, i);
-  return getTeacherLessonText(lesson as TeacherLesson, lessonType, i);
+// eslint-disable-next-line max-len
+function getLessonText(lesson: Lesson | undefined, lessonType: LessonType, i: number, userType: UserType, wasMutated: boolean): string {
+  if (userType === "student") return decorateLine(getStudentLessonText(lesson as StudentLesson, lessonType, i), wasMutated);
+  return decorateLine(getTeacherLessonText(lesson as TeacherLesson, lessonType, i), wasMutated);
+}
+
+function decorateLine(text: string, wasMutated?: boolean): string {
+  return `${wasMutated ? "_" : ""}${text}${wasMutated ? "_" : ""}`;
 }
 
 function getStudentLessonText(lesson: StudentLesson | undefined, type: LessonType, i: number): string {

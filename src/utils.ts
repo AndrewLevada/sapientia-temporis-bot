@@ -27,5 +27,6 @@ export function sanitizeTextForMD(text: string): string {
     .replace(/-/g, "\\-")
     .replace(/\(/g, "\\(")
     .replace(/\)/g, "\\)")
-    .replace(/\*/g, "\\*");
+    .replace(/\*/g, "\\*")
+    .replace(/_/g, "\\_");
 }
