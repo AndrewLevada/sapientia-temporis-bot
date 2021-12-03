@@ -71,13 +71,13 @@ export interface DateTimetable {
 export function init() {
   const db: Database = database();
 
-  hashedVersionRef = db.ref("hashed_version");
-  subjectsRef = db.ref("subjects");
-  roomsRef = db.ref("rooms");
-  scheduleRef = db.ref("schedule");
-  exchangeRef = db.ref("exchange");
-  teacherScheduleRef = db.ref("teacher_schedule");
-  teacherExchangeRef = db.ref("teacher_exchange");
+  hashedVersionRef = db.ref("timetable/hashed_version");
+  subjectsRef = db.ref("timetable/subjects");
+  roomsRef = db.ref("timetable/rooms");
+  scheduleRef = db.ref("timetable/schedule");
+  exchangeRef = db.ref("timetable/exchange");
+  teacherScheduleRef = db.ref("timetable/teacher_schedule");
+  teacherExchangeRef = db.ref("timetable/teacher_exchange");
 
   subjectsRef.on("value", snapshot => { subjects = snapshot.val(); });
   roomsRef.on("value", snapshot => { rooms = snapshot.val(); });
