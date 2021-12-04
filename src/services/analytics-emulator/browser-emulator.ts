@@ -22,9 +22,10 @@ export function emulateSendEvent(e: Event): Promise<void> {
     { userId: e.userId, url: `/${e.name}` },
     page => page.evaluate((v: string) => new Promise(resolve => {
       const event = JSON.parse(v);
+      if (event.params === undefined) event.params = {};
       event.params.event_callback = resolve;
       gtag("event", event.name, event.params);
-    }), JSON.stringify({ params: {}, ...e })).then(),
+    }), JSON.stringify(e)).then(),
   );
 }
 
