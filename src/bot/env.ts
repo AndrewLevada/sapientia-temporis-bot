@@ -2,10 +2,11 @@ import { UserType } from "../services/user-service";
 
 export const sessions: Record<string, SessionData> = {};
 
-type SessionState = "change-type" | "change-group" | "normal" | "feedback";
+type SessionState = "section-change" | "group-change" | "normal" | "feedback";
 interface SessionData {
   state?: SessionState;
   type?: UserType;
+  grade?: string;
 }
 
 export function setUserSessionState(userId: string, newState: SessionState) {

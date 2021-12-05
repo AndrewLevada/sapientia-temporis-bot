@@ -9,7 +9,7 @@ const feedbackKeyboard = Markup.keyboard([["Отмена"]]).resize();
 
 // eslint-disable-next-line import/prefer-default-export
 export function bindFeedback(bot: Telegraf) {
-  bot.hears("Оставить обратную связь", ctx => {
+  bot.hears("✉️ Оставить обратную связь", ctx => {
     const userId = getUserIdFromCtx(ctx as Context);
     logEvent(userId, "feedback_open");
     setUserSessionState(userId, "feedback");

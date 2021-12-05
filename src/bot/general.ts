@@ -4,7 +4,7 @@ import { changeUserInfo } from "./user-info-change";
 import { adminUsername } from "../env";
 
 export const defaultKeyboard = Markup.keyboard([["Сегодня"], ["Вчера", "Завтра"], ["На день недели", "✨ Дополнительно ✨"]]).resize();
-export const settingsKeyboard = Markup.keyboard([["⬅️ Назад️"], ["Изменить класс"], ["Рейтинг классов️"], ["Оставить обратную связь"]]).resize();
+export const settingsKeyboard = Markup.keyboard([["⬅️ Назад️"], ["⭐ Рейтинг классов️"], ["⚙️ Изменить класс"], ["✉️ Оставить обратную связь"]]).resize();
 
 export function bindGeneral(bot: Telegraf) {
   bot.start((ctx: Context) => {

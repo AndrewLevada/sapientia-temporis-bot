@@ -8,7 +8,7 @@ const leaderboardPlaces = ["🥇", "🥈", "🥉"];
 
 // eslint-disable-next-line import/prefer-default-export
 export function bindLeaderboard(bot: Telegraf) {
-  bot.hears("Рейтинг классов️", ctx => replyWithGroupsTop(ctx));
+  bot.hears("⭐ Рейтинг классов️", ctx => replyWithGroupsTop(ctx));
 }
 
 function replyWithGroupsTop(ctx: Context) {
