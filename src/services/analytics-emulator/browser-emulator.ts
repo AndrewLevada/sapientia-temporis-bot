@@ -35,6 +35,9 @@ export function emulateUserPropertiesUpdate(e: UserPropertyUpdated): Promise<voi
     return page.evaluate((v: string) => {
       const event = JSON.parse(v);
       gtag("set", "user_properties", event.properties);
+      return new Promise(resolve => {
+        gtag("get", "G-HYFTVXK74M", "user_properties", resolve);
+      });
     }, JSON.stringify(e)).then();
   });
 }

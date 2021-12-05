@@ -56,14 +56,15 @@ function getLetteredKeyboardOfLength(n: number): string[][] {
 }
 
 function processGroupChange(ctx: TextContext, userId: string) {
-  const group = ctx.message.text.toLowerCase().trim();
+  let group = ctx.message.text.toLowerCase().trim();
 
-  if (sessions[userId].type === "student")
-    if (groups[sessions[userId].grade + group]) {
+  if (sessions[userId].type === "student") {
+    group = sessions[userId].grade + group;
+    if (groups[group]) {
       logUserGroupChange(getUserIdFromCtx(ctx as Context), group);
       setUserInfo(userId, {
         type: "student",
-        group: groups[sessions[userId].grade + group],
+        group: groups[group],
         name: ctx.from?.first_name,
       }).then(() => {
         resetUserSession(userId);
@@ -71,7 +72,7 @@ function processGroupChange(ctx: TextContext, userId: string) {
           .then(() => replyWithTimetableForDelta(ctx, isTodaySunday() ? 1 : 0));
       });
     } else ctx.reply("Некорректный класс! Повтори ввод").then();
-  else if (sessions[userId].type === "teacher") {
+  } else if (sessions[userId].type === "teacher") {
     const t = searchForTeacher(group);
     if (t) {
       logUserGroupChange(getUserIdFromCtx(ctx as Context), t.fullName);
