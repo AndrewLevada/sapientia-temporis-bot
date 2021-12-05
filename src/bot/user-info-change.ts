@@ -6,11 +6,12 @@ import { getUserInfo, setUserInfo } from "../services/user-service";
 import { sessions, resetUserSession, setUserSessionState } from "./env";
 import { replyWithTimetableForDelta } from "./timetable";
 import { defaultKeyboard } from "./general";
+import texts from "./texts";
 
 const userSectionKeyboard = Markup.keyboard([["1", "2", "3", "4"], ["5", "6", "7", "8"], ["9", "10", "11"], ["Я преподаю"]]).resize();
 
 export function bindUserInfoChange(bot: Telegraf): void {
-  bot.hears("⚙️ Изменить класс", ctx => changeUserInfo(ctx));
+  bot.hears(texts.keys.settings.changeGroup, ctx => changeUserInfo(ctx));
 
   bot.on("text", (ctx, next) => {
     const userId: string = ctx.message.chat.id.toString();
@@ -37,6 +38,7 @@ function processSectionChange(ctx: TextContext, userId: string) {
     sessions[userId].grade = type;
     setUserSessionState(userId, "group-change");
     ctx.reply("Теперь уточни букву класса", Markup.keyboard(getLetteredKeyboardOfLength(lettersInGrades[typeAsNumber - 1])).resize()).then();
+    return;
   }
 
   ctx.reply("Некорректное значение! Повторите ввод", userSectionKeyboard).then();

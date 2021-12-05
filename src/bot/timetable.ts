@@ -11,16 +11,20 @@ import { changeUserInfo } from "./user-info-change";
 import { defaultKeyboard } from "./general";
 import { resetUserSession } from "./env";
 import { inverseGroups, inverseTeachers } from "../services/groups-service";
+import texts from "./texts";
 
-const deltaDayStrings = ["Вчера", "Сегодня", "Завтра"];
+const deltaDayStrings = [texts.keys.default.yesterday, texts.keys.default.today, texts.keys.default.tomorrow];
 
 export function bindTimetable(bot: Telegraf) {
-  bot.hears("Сегодня", ctx => replyWithTimetableForDelta(ctx, 0));
-  bot.hears("Завтра", ctx => replyWithTimetableForDelta(ctx, 1));
-  bot.hears("Вчера", ctx => replyWithTimetableForDelta(ctx, -1));
+  bot.hears(texts.keys.default.today, ctx => replyWithTimetableForDelta(ctx, 0));
+  bot.hears(texts.keys.default.tomorrow, ctx => replyWithTimetableForDelta(ctx, 1));
+  bot.hears(texts.keys.default.yesterday, ctx => replyWithTimetableForDelta(ctx, -1));
 
-  bot.hears("На день недели", ctx => ctx.reply("Выберите день недели", getDayAwareWeekKeyboard()));
-  bot.hears(workWeekStrings.map(v => new RegExp(`${v}( (Сегодня))?`)), ctx => replyWithTimetableForDay(ctx, weekStrings.indexOf(ctx.message.text.split(" ")[0])));
+  bot.hears(texts.keys.default.weekDay, ctx => ctx.reply(texts.res.timetable.pickWeekDay, getDayAwareWeekKeyboard()));
+  bot.hears(
+    workWeekStrings.map(v => new RegExp(`${v}( (Сегодня))?`)),
+    ctx => replyWithTimetableForDay(ctx, weekStrings.indexOf(ctx.message.text.split(" ")[0])),
+  );
 }
 
 export function replyWithTimetableForDelta(ctx: Context, dayDelta: number) {
@@ -30,8 +34,7 @@ export function replyWithTimetableForDelta(ctx: Context, dayDelta: number) {
   resetUserSession(userId);
   getUserInfo(userId).then(info => {
     if (!info || !info.type || !info.group) {
-      ctx.reply("Бот обновился! Теперь требуются дополнительные данные")
-        .then(() => changeUserInfo(ctx));
+      ctx.reply(texts.res.timetable.updateRequired).then(() => changeUserInfo(ctx));
       return;
     }
 
@@ -54,8 +57,7 @@ export function replyWithTimetableForDay(ctx: Context, day: number) {
   resetUserSession(userId);
   getUserInfo(userId).then(info => {
     if (!info || !info.type || !info.group) {
-      ctx.reply("Бот обновился! Теперь требуются дополнительные данные")
-        .then(() => changeUserInfo(ctx));
+      ctx.reply(texts.res.timetable.updateRequired).then(() => changeUserInfo(ctx));
       return;
     }
 

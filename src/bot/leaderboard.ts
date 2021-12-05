@@ -3,12 +3,13 @@ import { logEvent } from "../services/analytics-service";
 import { getUsersCount, getUsersLeaderboard } from "../services/user-service";
 import { inverseGroups } from "../services/groups-service";
 import { defaultKeyboard } from "./general";
+import texts from "./texts";
 
 const leaderboardPlaces = ["🥇", "🥈", "🥉"];
 
 // eslint-disable-next-line import/prefer-default-export
 export function bindLeaderboard(bot: Telegraf) {
-  bot.hears("⭐ Рейтинг классов️", ctx => replyWithGroupsTop(ctx));
+  bot.hears(texts.keys.settings.leaderboard, ctx => replyWithGroupsTop(ctx));
 }
 
 function replyWithGroupsTop(ctx: Context) {
@@ -26,6 +27,6 @@ function replyWithGroupsTop(ctx: Context) {
 
     text += leaderboard.slice(leaderboardPlaces.length + delta).join("\n");
 
-    ctx.replyWithMarkdownV2(text).then(() => ctx.reply("Обязательно показывай бота друзьям и однокласникам, чтобы им тоже было удобно смотреть расписание", defaultKeyboard));
+    ctx.replyWithMarkdownV2(text).then(() => ctx.reply(texts.res.leaderboard.share, defaultKeyboard));
   });
 }

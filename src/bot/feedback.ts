@@ -4,16 +4,17 @@ import { reportFeedback } from "../services/feedback-service";
 import { defaultKeyboard } from "./general";
 import { logEvent } from "../services/analytics-service";
 import { getUserIdFromCtx } from "../utils";
+import texts from "./texts";
 
-const feedbackKeyboard = Markup.keyboard([["Отмена"]]).resize();
+const feedbackKeyboard = Markup.keyboard([[texts.keys.feedback.cancel]]).resize();
 
 // eslint-disable-next-line import/prefer-default-export
 export function bindFeedback(bot: Telegraf) {
-  bot.hears("✉️ Оставить обратную связь", ctx => {
+  bot.hears(texts.keys.settings.feedback, ctx => {
     const userId = getUserIdFromCtx(ctx as Context);
     logEvent(userId, "feedback_open");
     setUserSessionState(userId, "feedback");
-    ctx.reply("Спасибо, что решили оставить обратную связь. Опишите впечатления от использования, проблемы или предложения новых функций. Чтобы отменить отправку обратной связи напишите \"Отмена\"", feedbackKeyboard);
+    ctx.reply(texts.res.feedback.intro, feedbackKeyboard);
   });
 
   bot.on("text", (ctx, next) => {
@@ -21,11 +22,11 @@ export function bindFeedback(bot: Telegraf) {
     if (!sessions[userId] || sessions[userId].state !== "feedback") next();
     else if (ctx.message.text.toLowerCase().trim() === "отмена") {
       setUserSessionState(userId, "normal");
-      ctx.reply("Отменяю отправку обратной связи", defaultKeyboard);
+      ctx.reply(texts.res.feedback.cancel, defaultKeyboard);
     } else reportFeedback(bot, userId, ctx.message.from.first_name, ctx.message.text).then(() => {
       logEvent(userId, "feedback_sent");
       setUserSessionState(userId, "normal");
-      ctx.reply("Ок, ваша обратная связь сохранена. Спасибо за уделённое время :)", defaultKeyboard);
+      ctx.reply(texts.res.feedback.thanks, defaultKeyboard);
     });
   });
 }
