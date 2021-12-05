@@ -3,14 +3,15 @@ import Reference = database.Reference;
 import Database = database.Database;
 import { UserInfo } from "../services/user-service";
 
-let usersRef!: Reference;
+// eslint-disable-next-line import/no-mutable-exports
+export let usersRef!: Reference;
 
 export function init() {
   const db: Database = database();
   usersRef = db.ref("users");
 }
 
-interface FullUserInfo extends UserInfo {
+export interface FullUserInfo extends UserInfo {
   userId: string;
 }
 
@@ -43,11 +44,22 @@ export function queryUserInfoVersionsReport(): void {
 export function queryStudentsFromGroup(group: string): void {
   usersRef.once("value").then(snap => {
     const users: FullUserInfo[] = Object.entries<UserInfo>(snap.val()).map(v => ({ userId: v[0], ...v[1] }))
-      .filter(v => v.group === group);
-
-    console.log(`Total users: ${users.length}`);
-    console.log("People:");
-    for (const i of users)
-      console.log(`${i.userId}: @${i.username} / ${i.name} ${i.isLimitedInGroupChange ? "limited" : ""}`);
+      .filter(v => v.group === group && v.type === "student");
+    reportFullUserInfoList(users);
   });
+}
+
+export function queryTeacher(group: string): void {
+  usersRef.once("value").then(snap => {
+    const users: FullUserInfo[] = Object.entries<UserInfo>(snap.val()).map(v => ({ userId: v[0], ...v[1] }))
+      .filter(v => v.group === group && v.type === "teacher");
+    reportFullUserInfoList(users);
+  });
+}
+
+function reportFullUserInfoList(users: FullUserInfo[]): void {
+  console.log(`Total users: ${users.length}`);
+  console.log("People:");
+  for (const i of users)
+    console.log(`${i.userId}: @${i.username} / ${i.name} ${i.isLimitedInGroupChange ? "limited" : ""}`);
 }
