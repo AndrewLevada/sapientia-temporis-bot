@@ -1,7 +1,7 @@
 import { Context, Markup, Telegraf } from "telegraf";
 import { decodeGroupFromUserInfo, groups, searchForTeacher } from "../services/groups-service";
 import { logUserGroupChange } from "../services/analytics-service";
-import { getUserIdFromCtx, TextContext } from "../utils";
+import { getUserIdFromCtx, isTodaySunday, TextContext } from "../utils";
 import { getUserInfo, setUserInfo } from "../services/user-service";
 import { sessions, resetUserSession, setUserSessionState } from "./env";
 import { replyWithTimetableForDelta } from "./timetable";
@@ -67,8 +67,8 @@ function processGroupChange(ctx: TextContext, userId: string) {
         name: ctx.from?.first_name,
       }).then(() => {
         resetUserSession(userId);
-        ctx.reply("Отлично! Расписание на сегодня:", defaultKeyboard)
-          .then(() => replyWithTimetableForDelta(ctx, 0));
+        ctx.reply("Отлично! Вот твоё расписание:", defaultKeyboard)
+          .then(() => replyWithTimetableForDelta(ctx, isTodaySunday() ? 1 : 0));
       });
     } else ctx.reply("Некорректный класс! Повтори ввод").then();
   else if (sessions[userId].type === "teacher") {
@@ -81,8 +81,8 @@ function processGroupChange(ctx: TextContext, userId: string) {
         name: ctx.from?.first_name,
       }).then(() => {
         resetUserSession(userId);
-        ctx.reply(`Отлично! Распознаю вас как ${t.fullName}. Вот расписание на сегодня:`, defaultKeyboard)
-          .then(() => replyWithTimetableForDelta(ctx, 0));
+        ctx.reply(`Отлично! Распознаю вас как ${t.fullName} Вот ваше расписание:`, defaultKeyboard)
+          .then(() => replyWithTimetableForDelta(ctx, isTodaySunday() ? 1 : 0));
       });
     } else ctx.reply("Преподаватель не найден! Повторите ввод").then();
   }

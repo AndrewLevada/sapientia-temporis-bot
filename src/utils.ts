@@ -14,6 +14,10 @@ export function dateToSimpleString(date: Date): string {
   return `${date.getDate() < 10 ? "0" : ""}${date.getDate()}\\.${date.getMonth() + 1 < 10 ? "0" : ""}${date.getMonth() + 1}`;
 }
 
+export function isTodaySunday(): boolean {
+  return new Date().getDay() === 0;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getUserIdFromCtx(ctx: { message?: unknown } & { update?: { callback_query?: any }} & Context): string {
   return (ctx.message || ctx.update.callback_query.message).chat.id.toString();
