@@ -42,7 +42,7 @@ export function replyWithTimetableForDelta(ctx: Context, dayDelta: number) {
     const day = getDayOfWeekWithDelta(dayDelta);
     const date = new Date(now.valueOf() + (day - now.getDay()) * (24 * 60 * 60 * 1000));
     getTimetable(info, date).then((timetable: DateTimetable) => {
-      ctx.replyWithMarkdownV2(`${deltaDayStrings[dayDelta + 1]} ${weekStrings[day]}: \n\n${timetable.lessons.join("\n\n")}`);
+      ctx.replyWithMarkdownV2(`${deltaDayStrings[dayDelta + 1]} ${weekStrings[day]}: \n\n${timetable.lessons.join("\n\n")}`, defaultKeyboard);
     });
   });
 }

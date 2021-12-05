@@ -1,5 +1,4 @@
 import { Context, Markup, Telegraf } from "telegraf";
-import { CallbackQuery } from "typegram/callback";
 import { decodeGroupFromUserInfo, groups, searchForTeacher } from "../services/groups-service";
 import { logUserGroupChange } from "../services/analytics-service";
 import { getUserIdFromCtx, TextContext } from "../utils";
@@ -11,11 +10,7 @@ import { defaultKeyboard } from "./general";
 const userTypeKeyboard = Markup.keyboard(["Учусь", "Преподаю"]).resize();
 
 export function bindUserInfoChange(bot: Telegraf): void {
-  bot.on("callback_query", (ctx, next) => {
-    if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "group")
-      changeUserInfo(ctx);
-    else next();
-  });
+  bot.hears("Изменить класс", ctx => changeUserInfo(ctx));
 
   bot.on("text", (ctx, next) => {
     const userId: string = ctx.message.chat.id.toString();
@@ -77,7 +72,7 @@ function processGroupChange(ctx: TextContext, userId: string) {
   }
 }
 
-export function changeUserInfo(ctx: { message?: any } & { update?: { callback_query?: any }} & Context): void {
+export function changeUserInfo(ctx: Context): void {
   const userId: string = getUserIdFromCtx(ctx);
   getUserInfo(userId).then(userInfo => {
     if (userInfo && userInfo.isLimitedInGroupChange === true)

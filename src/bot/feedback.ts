@@ -1,5 +1,4 @@
-import { Markup, Telegraf } from "telegraf";
-import { CallbackQuery } from "typegram/callback";
+import { Context, Markup, Telegraf } from "telegraf";
 import { sessions, setUserSessionState } from "./env";
 import { reportFeedback } from "../services/feedback-service";
 import { defaultKeyboard } from "./general";
@@ -10,13 +9,11 @@ const feedbackKeyboard = Markup.keyboard([["Отмена"]]).resize();
 
 // eslint-disable-next-line import/prefer-default-export
 export function bindFeedback(bot: Telegraf) {
-  bot.on("callback_query", (ctx, next) => {
-    if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "feedback") {
-      const userId = getUserIdFromCtx(ctx);
-      logEvent(userId, "feedback_open");
-      setUserSessionState(userId, "feedback");
-      ctx.reply("Спасибо, что решили оставить обратную связь. Опишите впечатления от использования, проблемы или предложения новых функций. Чтобы отменить отправку обратной связи напишите \"Отмена\"", feedbackKeyboard);
-    } else next();
+  bot.hears("Оставить обратную связь", ctx => {
+    const userId = getUserIdFromCtx(ctx as Context);
+    logEvent(userId, "feedback_open");
+    setUserSessionState(userId, "feedback");
+    ctx.reply("Спасибо, что решили оставить обратную связь. Опишите впечатления от использования, проблемы или предложения новых функций. Чтобы отменить отправку обратной связи напишите \"Отмена\"", feedbackKeyboard);
   });
 
   bot.on("text", (ctx, next) => {

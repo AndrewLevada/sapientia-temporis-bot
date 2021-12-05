@@ -4,11 +4,7 @@ import { changeUserInfo } from "./user-info-change";
 import { adminUsername } from "../env";
 
 export const defaultKeyboard = Markup.keyboard([["Сегодня"], ["Вчера", "Завтра"], ["На день недели", "✨ Дополнительно ✨"]]).resize();
-const settingsKeyboard = Markup.inlineKeyboard([
-  [{ text: "Рейтинг классов", callback_data: "population" }],
-  [{ text: "Настроить расписание", callback_data: "group" }],
-  [{ text: "Оставить обратную связь", callback_data: "feedback" }],
-]);
+export const settingsKeyboard = Markup.keyboard([["⬅️ Назад️"], ["Изменить класс"], ["Рейтинг классов️"], ["Оставить обратную связь"]]).resize();
 
 export function bindGeneral(bot: Telegraf) {
   bot.start((ctx: Context) => {
@@ -24,6 +20,7 @@ export function bindGeneral(bot: Telegraf) {
 
   bot.hears("✨ Дополнительно", ctx => replyWithSettings(ctx, true)); // Temp
   bot.hears("✨ Дополнительно ✨", ctx => replyWithSettings(ctx, false));
+  bot.hears("⬅️ Назад️", ctx => ctx.reply("ОК", defaultKeyboard));
 }
 
 function replyWithSettings(ctx: Context, isOldCall: boolean) {
