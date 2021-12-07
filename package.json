@@ -17,6 +17,8 @@
     "tools": "npm run-script build & node dist/tools/launch.js"
   },
   "dependencies": {
+    "@sentry/node": "^6.15.0",
+    "@sentry/tracing": "^6.15.0",
     "axios": "^0.24.0",
     "express": "^4.17.1",
     "firebase-admin": "^10.0.0",

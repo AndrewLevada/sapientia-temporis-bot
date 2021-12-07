@@ -1,8 +1,9 @@
 import { Telegraf } from "telegraf";
 import * as admin from "firebase-admin";
+import * as Sentry from "@sentry/node";
 import { init as initTimetableService } from "./services/timetable-service";
 import { init as initFeedbackService } from "./services/feedback-service";
-import { init as initErrorReportingService, reportError } from "./services/error-reporting-service";
+import { init as initErrorReportingService } from "./services/error-reporting-service";
 import { init as initEmulatorCookiesService } from "./services/analytics-emulator/emulator-cookies-service";
 import { init as initUserService } from "./services/user-service";
 import { bindUserInfoChange } from "./bot/user-info-change";
@@ -13,8 +14,14 @@ import { bindGeneral, defaultKeyboard } from "./bot/general";
 import { bindFeedback } from "./bot/feedback";
 import { startAnalyticsPageServer } from "./services/analytics-emulator/server";
 import { startAnalyticsBrowserEmulator } from "./services/analytics-emulator/browser-emulator";
-import { sendMessageToAdmin } from "./services/broadcast-service";
 import { logEvent } from "./services/analytics-service";
+import "@sentry/tracing";
+import { getUserIdFromCtx } from "./utils";
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  tracesSampleRate: 0.8,
+});
 
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(Buffer.from(process.env.FIREBASE_CONFIG as string, "base64").toString("ascii"))),
@@ -36,26 +43,13 @@ function startBot() {
   bot.launch().then(() => {
     process.once("SIGINT", () => bot.stop("SIGINT"));
     process.once("SIGTERM", () => bot.stop("SIGTERM"));
-    process.on("unhandledRejection", reason => {
-      console.error("unhandledRejection", reason);
-      reportError(reason).then();
-      sendMessageToAdmin(bot, `⚠️ Unhandled Rejection: \n\n${reason}`).then();
-    });
-    process.on("uncaughtException", err => {
-      console.error("uncaughtException", err);
-      reportError(err).then();
-      sendMessageToAdmin(bot, `⚠️ Unhandled Exception: \n\n${err}`).then();
-    });
   });
 }
 
 function bindBot(bot: Telegraf) {
   bot.use((ctx, next) => {
-    try {
-      next().catch(err => reportError(err, ctx));
-    } catch (err) {
-      reportError(err, ctx).then();
-    }
+    Sentry.setUser({ id: getUserIdFromCtx(ctx) });
+    next().then();
   });
 
   bindGeneral(bot);
