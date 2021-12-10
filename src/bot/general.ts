@@ -11,9 +11,9 @@ export const defaultKeyboard = Markup.keyboard([
 
 export const settingsKeyboard = Markup.keyboard([
   [texts.keys.settings.back],
-  [texts.keys.settings.leaderboard],
   [texts.keys.settings.changeGroup],
-  [texts.keys.settings.feedback],
+  [texts.keys.settings.scheduledNotifications],
+  [texts.keys.settings.feedback, texts.keys.settings.leaderboard],
 ]).resize();
 
 export function bindGeneral(bot: Telegraf) {
@@ -27,13 +27,12 @@ export function bindGeneral(bot: Telegraf) {
     ctx.reply(texts.res.general.help);
   });
 
-  bot.hears(texts.keys.default.oldMore, ctx => replyWithSettings(ctx, true)); // Temp
-  bot.hears(texts.keys.default.more, ctx => replyWithSettings(ctx, false));
+  bot.hears(texts.keys.default.oldMore, ctx => replyWithSettings(ctx)); // Temp
+  bot.hears(texts.keys.default.more, ctx => replyWithSettings(ctx));
   bot.hears(texts.keys.settings.back, ctx => ctx.reply("ОК", defaultKeyboard));
 }
 
-function replyWithSettings(ctx: Context, isOldCall: boolean) {
+function replyWithSettings(ctx: Context) {
   logPageView(ctx, "/settings");
-  if (isOldCall) ctx.reply(texts.res.general.settingsOld, settingsKeyboard).then();
-  else ctx.reply(texts.res.general.settings, settingsKeyboard).then();
+  ctx.reply(texts.res.general.settings, settingsKeyboard).then();
 }

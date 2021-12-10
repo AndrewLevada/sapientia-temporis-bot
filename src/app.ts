@@ -1,6 +1,7 @@
 import { Telegraf } from "telegraf";
 import * as admin from "firebase-admin";
 import * as Sentry from "@sentry/node";
+import { CallbackQuery } from "typegram";
 import { init as initTimetableService } from "./services/timetable-service";
 import { init as initFeedbackService } from "./services/feedback-service";
 import { init as initErrorReportingService } from "./services/error-reporting-service";
@@ -17,6 +18,8 @@ import { startAnalyticsBrowserEmulator } from "./services/analytics-emulator/bro
 import { logEvent } from "./services/analytics-service";
 import "@sentry/tracing";
 import { getUserIdFromCtx } from "./utils";
+import { bindScheduledNotifications } from "./bot/scheduledNotifications";
+import { bindTimePicker } from "./bot/time-picker";
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
@@ -57,10 +60,18 @@ function bindBot(bot: Telegraf) {
   bindTimetable(bot);
   bindLeaderboard(bot);
   bindFeedback(bot);
+  bindTimePicker(bot);
+  bindScheduledNotifications(bot);
   bindAdmin(bot);
 
   bot.on("text", ctx => {
     logEvent(ctx, "unrecognized", { text: ctx.message.text });
     ctx.reply("Для получения информации /help", defaultKeyboard);
+  });
+
+  bot.on("callback_query", ctx => {
+    const text = (ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data;
+    if (text !== "ignore") logEvent(ctx, "unrecognized", { text });
+    ctx.answerCbQuery();
   });
 }
