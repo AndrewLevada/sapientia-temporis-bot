@@ -4,7 +4,8 @@ import Reference = database.Reference;
 import { BroadcastGroup } from "./broadcast-service";
 import { groups, inverseGroups } from "./groups-service";
 
-let usersRef!: Reference;
+// eslint-disable-next-line import/no-mutable-exports
+export let usersRef!: Reference;
 
 let top: Record<string, number> = {};
 
@@ -20,6 +21,7 @@ export interface UserInfo {
   name?: string;
   username?: string;
   isLimitedInGroupChange?: boolean;
+  scheduledNotificationLocation?: string;
 }
 
 export type UserType = "student" | "teacher";

@@ -7,6 +7,7 @@ import { init as initFeedbackService } from "./services/feedback-service";
 import { init as initErrorReportingService } from "./services/error-reporting-service";
 import { init as initEmulatorCookiesService } from "./services/analytics-emulator/emulator-cookies-service";
 import { init as initUserService } from "./services/user-service";
+import { init as initScheduledNotificationsService } from "./services/scheduled-notifications-service";
 import { bindUserInfoChange } from "./bot/user-info-change";
 import { bindTimetable } from "./bot/timetable";
 import { bindAdmin } from "./bot/admin";
@@ -36,6 +37,7 @@ initTimetableService();
 initUserService();
 initFeedbackService();
 initEmulatorCookiesService();
+initScheduledNotificationsService();
 startAnalyticsPageServer()
   .then(startAnalyticsBrowserEmulator)
   .then(startBot);
