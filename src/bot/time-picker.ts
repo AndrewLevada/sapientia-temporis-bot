@@ -1,6 +1,9 @@
 import { Markup, Telegraf } from "telegraf";
 import { CallbackQuery } from "typegram/callback";
 
+// NOT USED NOW
+// Also not quite really (minutes work, hours don't)
+
 const minutesCycle = ["00", "15", "30", "45"];
 
 export function getDefaultTimePickerKeyboard() {

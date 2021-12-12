@@ -21,12 +21,12 @@ export interface UserInfo {
   name?: string;
   username?: string;
   isLimitedInGroupChange?: boolean;
-  scheduledNotificationLocation?: string;
+  doNotifyAboutExchanges?: boolean;
 }
 
 export type UserType = "student" | "teacher";
 
-export function setUserInfo(userId: string, info: UserInfo): Promise<void> {
+export function setUserInfo(userId: string, info: Partial<UserInfo>): Promise<void> {
   const userRef = usersRef.child(userId);
 
   if (info.name === undefined) delete info.name;
@@ -34,8 +34,10 @@ export function setUserInfo(userId: string, info: UserInfo): Promise<void> {
 
   return userRef.once("value").then(snap => {
     const oldInfo: UserInfo = snap.val();
-    if (oldInfo && oldInfo.group && oldInfo.type === "student") removeUserSnapFromTop(oldInfo.group);
-    if (info.type === "student") addUserSnapToTop(info.group);
+    if (info.group) {
+      if (oldInfo && oldInfo.group && oldInfo.type === "student") removeUserSnapFromTop(oldInfo.group);
+      if (info.type === "student") addUserSnapToTop(info.group);
+    }
     return userRef.set({ ...oldInfo, ...info });
   });
 }

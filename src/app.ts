@@ -19,7 +19,7 @@ import { startAnalyticsBrowserEmulator } from "./services/analytics-emulator/bro
 import { logEvent } from "./services/analytics-service";
 import "@sentry/tracing";
 import { getUserIdFromCtx } from "./utils";
-import { bindScheduledNotifications } from "./bot/scheduled-notifications";
+import { bindExchangeNotifications } from "./bot/exchange-notifications";
 import { bindTimePicker } from "./bot/time-picker";
 
 if (process.env.NODE_ENV !== "development") Sentry.init({
@@ -64,7 +64,7 @@ function bindBot(bot: Telegraf) {
   bindLeaderboard(bot);
   bindFeedback(bot);
   bindTimePicker(bot);
-  bindScheduledNotifications(bot);
+  bindExchangeNotifications(bot);
   bindAdmin(bot);
 
   bot.on("text", ctx => {

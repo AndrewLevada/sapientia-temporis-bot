@@ -2,7 +2,7 @@ import { UserType } from "../services/user-service";
 
 export const sessions: Record<string, SessionData> = {};
 
-type SessionState = "section-change" | "group-change" | "normal" | "feedback";
+type SessionState = "section-change" | "group-change" | "normal" | "feedback" | "exchange-notifications";
 interface SessionData {
   state?: SessionState;
   type?: UserType;

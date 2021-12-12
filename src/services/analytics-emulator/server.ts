@@ -40,4 +40,5 @@ const titlesMap: Record<string, string> = {
   "/group_change": "Изменение группы",
   "/unrecognized": "Неопознаный текст",
   "/broadcast_response": "Ответ на трансляцию",
+  "/exchange_notifications": "Уведоиления о заменах",
 };
