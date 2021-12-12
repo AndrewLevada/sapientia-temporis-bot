@@ -1,18 +1,8 @@
 import axios from "axios";
-import { database } from "firebase-admin";
-import Reference = database.Reference;
-import Database = database.Database;
 import { inverseGroups, isGroupUpper, isGroupWithPairs } from "./groups-service";
 import { UserInfo, UserType } from "./user-service";
 import { sanitizeTextForMD } from "../utils";
-
-let hashedVersionRef!: Reference;
-let subjectsRef!: Reference;
-let roomsRef!: Reference;
-let scheduleRef!: Reference;
-let exchangeRef!: Reference;
-let teacherScheduleRef!: Reference;
-let teacherExchangeRef!: Reference;
+import { db } from "./db";
 
 let subjects: any | null;
 let rooms: any | null;
@@ -68,19 +58,9 @@ export interface DateTimetable {
   date: Date;
 }
 
-export function init() {
-  const db: Database = database();
-
-  hashedVersionRef = db.ref("timetable/hashed_version");
-  subjectsRef = db.ref("timetable/subjects");
-  roomsRef = db.ref("timetable/rooms");
-  scheduleRef = db.ref("timetable/schedule");
-  exchangeRef = db.ref("timetable/exchange");
-  teacherScheduleRef = db.ref("timetable/teacher_schedule");
-  teacherExchangeRef = db.ref("timetable/teacher_exchange");
-
-  subjectsRef.on("value", snapshot => { subjects = snapshot.val(); });
-  roomsRef.on("value", snapshot => { rooms = snapshot.val(); });
+export function initTimetableService() {
+  db("timetable/subjects").on("value", snapshot => { subjects = snapshot.val(); });
+  db("timetable/rooms").on("value", snapshot => { rooms = snapshot.val(); });
 }
 
 export function getTimetable(info: UserInfo, date: Date): Promise<DateTimetable> {
@@ -90,7 +70,7 @@ export function getTimetable(info: UserInfo, date: Date): Promise<DateTimetable>
 function validateHashedData(): Promise<void> {
   return Promise.all([
     axios.get("http://raspisanie.nikasoft.ru/check/47307204.html").then(res => res.data as string),
-    hashedVersionRef.once("value").then(snap => snap.val() as string),
+    db("timetable/hashed_version").once("value").then(snap => snap.val() as string),
   ]).then(([currentVersion, cachedVersion]) => {
     if (cachedVersion === currentVersion) return Promise.resolve();
     return updateHashedData(currentVersion);
@@ -98,7 +78,7 @@ function validateHashedData(): Promise<void> {
 }
 
 function updateHashedData(version: string): Promise<void> {
-  const hashPromise = hashedVersionRef.set(version);
+  const hashPromise = db("timetable/hashed_version").set(version);
 
   return axios.get(`http://raspisanie.nikasoft.ru/static/public/${version}`).then(res => {
     const rawData: string = (res.data as string).split("var NIKA=\r\n")[1].split(";")[0];
@@ -106,12 +86,12 @@ function updateHashedData(version: string): Promise<void> {
 
     return Promise.all([
       hashPromise,
-      subjectsRef.set(data.SUBJECTS),
-      roomsRef.set(data.ROOMS),
-      scheduleRef.set(data.CLASS_SCHEDULE),
-      exchangeRef.set(correctExchangeDatesFormat(data.CLASS_EXCHANGE)),
-      teacherScheduleRef.set(data.TEACH_SCHEDULE),
-      teacherExchangeRef.set(correctExchangeDatesFormat(data.TEACH_EXCHANGE)),
+      db("timetable/subjects").set(data.SUBJECTS),
+      db("timetable/rooms").set(data.ROOMS),
+      db("timetable/schedule").set(data.CLASS_SCHEDULE),
+      db("timetable/exchange").set(correctExchangeDatesFormat(data.CLASS_EXCHANGE)),
+      db("timetable/teacher_schedule").set(data.TEACH_SCHEDULE),
+      db("timetable/teacher_exchange").set(correctExchangeDatesFormat(data.TEACH_EXCHANGE)),
     ]).then();
   });
 }
@@ -130,8 +110,8 @@ function constructTimetable(info: UserInfo, date: Date): Promise<DateTimetable> 
   const dateString: string = `${date.getDate() < 10 ? "0" : ""}${date.getDate()}-${date.getMonth() < 9 ? "0" : ""}${date.getMonth() + 1}-${date.getFullYear()}`;
 
   return Promise.all([
-    (info.type === "teacher" ? teacherScheduleRef : scheduleRef).child(`${process.env.PERIOD_ID as string}/${info.group}`).once("value"),
-    (info.type === "teacher" ? teacherExchangeRef : exchangeRef).child(`${info.group}/${dateString}`).once("value"),
+    (info.type === "teacher" ? db("timetable/teacher_schedule") : db("timetable/schedule")).child(`${process.env.PERIOD_ID as string}/${info.group}`).once("value"),
+    (info.type === "teacher" ? db("timetable/teacher_exchange") : db("timetable/exchange")).child(`${info.group}/${dateString}`).once("value"),
   ]).then(([scheduleSnapshot, exchangeSnapshot]) => {
     const timetable: Timetable = {
       schedule: scheduleSnapshot.val(),

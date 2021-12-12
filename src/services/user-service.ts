@@ -1,18 +1,8 @@
-import { database } from "firebase-admin";
-import Database = database.Database;
-import Reference = database.Reference;
 import { BroadcastGroup } from "./broadcast-service";
 import { groups, inverseGroups } from "./groups-service";
-
-let usersRef!: Reference;
+import { db } from "./db";
 
 let top: Record<string, number> = {};
-
-export function init() {
-  const db: Database = database();
-  usersRef = db.ref("users");
-  fetchUsersTop().then();
-}
 
 export interface UserInfo {
   type: UserType;
@@ -26,7 +16,7 @@ export interface UserInfo {
 export type UserType = "student" | "teacher";
 
 export function setUserInfo(userId: string, info: Partial<UserInfo>): Promise<void> {
-  const userRef = usersRef.child(userId);
+  const userRef = db("users").child(userId);
 
   if (info.name === undefined) delete info.name;
   if (info.username === undefined) delete info.username;
@@ -42,33 +32,33 @@ export function setUserInfo(userId: string, info: Partial<UserInfo>): Promise<vo
 }
 
 export function getUserInfo(userId: string): Promise<UserInfo> {
-  return usersRef.child(`${userId}`).get().then(snapshot => snapshot.val());
+  return db("users").child(`${userId}`).get().then(snapshot => snapshot.val());
 }
 
 export function getUsersIdsByGroup(group: BroadcastGroup): Promise<string[]> {
   if (group.type === "section") {
-    if (group.value === "all") return usersRef.once("value").then(v => Object.keys(v.val()));
-    return usersRef.orderByChild("type").equalTo(group.value.slice(0, -1))
-      .once("value").then(v => Object.keys(v.val()));
+    if (group.value === "all") return db("users").once("value").then(v => Object.keys(v.val()));
+    return db("users").orderByChild("type").equalTo(group.value.slice(0, -1)).once("value")
+      .then(v => Object.keys(v.val()));
   }
 
-  if (group.type === "grade") return usersRef.orderByChild("type").equalTo("student").once("value")
+  if (group.type === "grade") return db("users").orderByChild("type").equalTo("student").once("value")
     .then(v => Object.entries(v.val())
       .filter(o => inverseGroups[(o[1] as any).group]?.startsWith(group.value))
       .map(o => o[0]));
 
   if (group.type === "userId") return Promise.resolve([group.value]);
 
-  return usersRef.orderByChild("type").equalTo("student").once("value")
+  return db("users").orderByChild("type").equalTo("student").once("value")
     .then(v => Object.entries(v.val()).filter(o => (o[1] as any).group === groups[group.value]).map(o => o[0]));
 }
 
 export function getUsersCount(): Promise<number> {
-  return usersRef.once("value").then(snapshot => snapshot.numChildren());
+  return db("users").once("value").then(snapshot => snapshot.numChildren());
 }
 
 export function getTeachersList(): Promise<string[]> {
-  return usersRef.orderByChild("type")
+  return db("users").orderByChild("type")
     .equalTo("teacher")
     .once("value")
     .then(s => Object.values(s.val()).map(v => (v as UserInfo).group));
@@ -78,11 +68,12 @@ export function getUsersLeaderboard(): [string, number][] {
   return Object.entries(top).sort((a, b) => b[1] - a[1]);
 }
 
-function fetchUsersTop(): Promise<void> {
-  return usersRef.orderByChild("type").equalTo("student").once("value").then(snapshot => {
-    top = {};
-    snapshot.forEach(s => addUserSnapToTop(s.val().group));
-  });
+export function initialFetchUsersTop(): Promise<void> {
+  return db("users").orderByChild("type").equalTo("student").once("value")
+    .then(snapshot => {
+      top = {};
+      snapshot.forEach(s => addUserSnapToTop(s.val().group));
+    });
 }
 
 function addUserSnapToTop(group: string): void {

@@ -2,11 +2,7 @@ import { Telegraf } from "telegraf";
 import * as admin from "firebase-admin";
 import * as Sentry from "@sentry/node";
 import { CallbackQuery } from "typegram";
-import { init as initTimetableService } from "./services/timetable-service";
-import { init as initFeedbackService } from "./services/feedback-service";
-import { init as initErrorReportingService } from "./services/error-reporting-service";
-import { init as initEmulatorCookiesService } from "./services/analytics-emulator/emulator-cookies-service";
-import { init as initUserService } from "./services/user-service";
+import { initialFetchUsersTop } from "./services/user-service";
 import { bindUserInfoChange } from "./bot/user-info-change";
 import { bindTimetable } from "./bot/timetable";
 import { bindAdmin } from "./bot/admin";
@@ -20,6 +16,8 @@ import "@sentry/tracing";
 import { getUserIdFromCtx } from "./utils";
 import { bindExchangeNotifications } from "./bot/exchange-notifications";
 import { bindTimePicker } from "./bot/time-picker";
+import { initDatabase } from "./services/db";
+import { initTimetableService } from "./services/timetable-service";
 
 if (process.env.NODE_ENV !== "development") Sentry.init({
   dsn: process.env.SENTRY_DSN,
@@ -32,13 +30,11 @@ admin.initializeApp({
   databaseURL: process.env.FIREBASE_DATABASE_URL as string,
 });
 
-initErrorReportingService();
+initDatabase();
 initTimetableService();
-initUserService();
-initFeedbackService();
-initEmulatorCookiesService();
 startAnalyticsPageServer()
   .then(startAnalyticsBrowserEmulator)
+  .then(initialFetchUsersTop)
   .then(startBot);
 
 function startBot() {

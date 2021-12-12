@@ -1,12 +1,8 @@
 import { Telegraf } from "telegraf";
-import { database } from "firebase-admin";
-import Reference = database.Reference;
-import Database = database.Database;
 import { getUserInfo, UserType } from "./user-service";
 import { inverseGroups, inverseTeachers } from "./groups-service";
-import { adminUserId } from "../env";
-
-let feedbackRef!: Reference;
+import { sendMessageToAdmin } from "./broadcast-service";
+import { db } from "./db";
 
 interface FeedbackReport {
   userId: string;
@@ -18,11 +14,7 @@ interface FeedbackReport {
   timestamp: string;
 }
 
-export function init() {
-  const db: Database = database();
-  feedbackRef = db.ref("feedback");
-}
-
+// eslint-disable-next-line import/prefer-default-export
 export function reportFeedback(bot: Telegraf, userId: string, firstName: string, text: string): Promise<void> {
   const now = new Date();
   return getUserInfo(userId).then(userInfo => {
@@ -41,7 +33,7 @@ export function reportFeedback(bot: Telegraf, userId: string, firstName: string,
 }
 
 function recordFeedback(report: FeedbackReport): Promise<void> {
-  return feedbackRef.child(`${new Date().valueOf()}_${report.userId}`).set(report);
+  return db("feedback").child(`${new Date().valueOf()}_${report.userId}`).set(report);
 }
 
 function sendFeedbackToAdmin(bot: Telegraf, report: FeedbackReport): Promise<void> {
@@ -49,5 +41,5 @@ function sendFeedbackToAdmin(bot: Telegraf, report: FeedbackReport): Promise<voi
   text += `Отправитель ${report.userFirstName} (@${report.userAlias}, userId-${report.userId}) из группы ${report.userType} ${report.userGroup} \n`;
   text += "Текст: \n\n";
   text += report.text;
-  return bot.telegram.sendMessage(adminUserId, text).then();
+  return sendMessageToAdmin(bot, text);
 }
