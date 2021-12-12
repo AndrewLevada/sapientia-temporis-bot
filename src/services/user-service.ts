@@ -4,8 +4,7 @@ import Reference = database.Reference;
 import { BroadcastGroup } from "./broadcast-service";
 import { groups, inverseGroups } from "./groups-service";
 
-// eslint-disable-next-line import/no-mutable-exports
-export let usersRef!: Reference;
+let usersRef!: Reference;
 
 let top: Record<string, number> = {};
 
