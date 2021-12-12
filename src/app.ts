@@ -19,12 +19,13 @@ import { startAnalyticsBrowserEmulator } from "./services/analytics-emulator/bro
 import { logEvent } from "./services/analytics-service";
 import "@sentry/tracing";
 import { getUserIdFromCtx } from "./utils";
-import { bindScheduledNotifications } from "./bot/scheduledNotifications";
+import { bindScheduledNotifications } from "./bot/scheduled-notifications";
 import { bindTimePicker } from "./bot/time-picker";
 
-Sentry.init({
+if (process.env.NODE_ENV !== "development") Sentry.init({
   dsn: process.env.SENTRY_DSN,
   tracesSampleRate: 0.8,
+  integrations: [new Sentry.Integrations.Http({ tracing: true })],
 });
 
 admin.initializeApp({
