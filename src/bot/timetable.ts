@@ -6,7 +6,7 @@ import { dateToSimpleString,
   weekStrings,
   workWeekStrings } from "../utils";
 import { getUserInfo, setUserInfo, UserInfo } from "../services/user-service";
-import { DateTimetable, getTimetable } from "../services/timetable-service";
+import { DateTimetable, getTimetable, getTimetableForDelta } from "../services/timetable-service";
 import { changeUserInfo } from "./user-info-change";
 import { defaultKeyboard } from "./general";
 import { resetUserSession } from "./env";
@@ -41,11 +41,8 @@ export function replyWithTimetableForDelta(ctx: Context, dayDelta: number) {
     logEvent(userId, "timetable_view", { type: "delta", dayDelta });
     collectAdditionalUserData(ctx, userId, info);
 
-    const now = new Date();
-    const day = getDayOfWeekWithDelta(dayDelta);
-    const date = new Date(now.valueOf() + (day - now.getDay()) * (24 * 60 * 60 * 1000));
-    getTimetable(info, date).then((timetable: DateTimetable) => {
-      ctx.replyWithMarkdownV2(`${deltaDayStrings[dayDelta + 1]} ${weekStrings[day]}: \n\n${timetable.lessons.join("\n\n")}`, defaultKeyboard);
+    getTimetableForDelta(info, dayDelta).then((timetable: DateTimetable) => {
+      ctx.replyWithMarkdownV2(`${deltaDayStrings[dayDelta + 1]} ${weekStrings[getDayOfWeekWithDelta(dayDelta)]}: \n\n${timetable.lessons.join("\n\n")}`, defaultKeyboard);
     });
   });
 }

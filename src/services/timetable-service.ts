@@ -1,7 +1,7 @@
 import axios from "axios";
 import { inverseGroups, isGroupUpper, isGroupWithPairs } from "./groups-service";
 import { UserInfo, UserType } from "./user-service";
-import { sanitizeTextForMD } from "../utils";
+import { getDayOfWeekWithDelta, sanitizeTextForMD } from "../utils";
 import { db } from "./db";
 
 let subjects: any | null;
@@ -56,11 +56,19 @@ export interface Timetable {
 export interface DateTimetable {
   lessons: string[];
   date: Date;
+  wasMutated: boolean;
 }
 
 export function initTimetableService() {
   db("timetable/subjects").on("value", snapshot => { subjects = snapshot.val(); });
   db("timetable/rooms").on("value", snapshot => { rooms = snapshot.val(); });
+}
+
+export function getTimetableForDelta(info: UserInfo, delta: number): Promise<DateTimetable> {
+  const now = new Date();
+  const day = getDayOfWeekWithDelta(delta);
+  const date = new Date(now.valueOf() + (day - now.getDay()) * (24 * 60 * 60 * 1000));
+  return getTimetable(info, date);
 }
 
 export function getTimetable(info: UserInfo, date: Date): Promise<DateTimetable> {
@@ -119,49 +127,52 @@ function constructTimetable(info: UserInfo, date: Date): Promise<DateTimetable> 
     };
 
     let result: string[];
+    let wasMutated: boolean;
 
     if (info.type === "student") {
       if (isGroupWithPairs(info.group))
-        result = getLessonsAsPairs(timetable, info.type, date);
-      else result = getLessons(timetable, info.type, date);
+        [result, wasMutated] = getLessonsAsPairs(timetable, info.type, date);
+      else [result, wasMutated] = getLessons(timetable, info.type, date);
 
       if (isGroupUpper(info.group) && result.length > 0)
         removeEmptyAtStart(result);
     } else
-      result = getLessonsAsPairs(timetable, info.type, date);
+      [result, wasMutated] = getLessonsAsPairs(timetable, info.type, date);
 
-    if (result.length === 0) return { lessons: ["Свободный день"], date };
-    return { lessons: result.reverse(), date };
+    if (result.length === 0) return { lessons: ["Свободный день"], date, wasMutated };
+    return { lessons: result.reverse(), date, wasMutated };
   });
 }
 
-function getLessonsAsPairs(timetable: Timetable, type: UserType, date: Date): string[] {
+function getLessonsAsPairs(timetable: Timetable, type: UserType, date: Date): [string[], boolean] {
   const result: string[] = [];
+  let wasMutated = false;
 
   for (let j = 6; j > 0; j--) {
     const index: string[] = [getLessonIndex(date.getDay(), j * 2), getLessonIndex(date.getDay(), j * 2 - 1)];
     const lessons: (Lesson | undefined)[] = [timetable.schedule[index[0]], timetable.schedule[index[1]]];
-    let wasMutated = false;
+    let wasLessonMutated = false;
 
     if (timetable.exchange) {
       let wasAlsoMutated = false;
-      [lessons[0], wasMutated] = mutateExchange(lessons[0], j * 2, timetable.exchange);
+      [lessons[0], wasLessonMutated] = mutateExchange(lessons[0], j * 2, timetable.exchange);
       [lessons[1], wasAlsoMutated] = mutateExchange(lessons[1], j * 2 - 1, timetable.exchange);
-      if (wasAlsoMutated) wasMutated = true;
+      if (wasAlsoMutated) wasLessonMutated = true;
     }
+    if (wasLessonMutated) wasMutated = true;
 
     if (isPair(type, lessons)) {
       if (lessons[0] || result.length > 0)
-        result.push(getLessonText(lessons[0], "pair", j * 2, type, wasMutated));
+        result.push(getLessonText(lessons[0], "pair", j * 2, type, wasLessonMutated));
     } else {
       if (lessons[0] || lessons[1] || result.length > 0)
-        result.push(getLessonText(lessons[0], "lesson", j * 2, type, wasMutated));
+        result.push(getLessonText(lessons[0], "lesson", j * 2, type, wasLessonMutated));
       if (lessons[1] || result.length > 0)
-        result.push(getLessonText(lessons[1], "lesson", j * 2 - 1, type, wasMutated));
+        result.push(getLessonText(lessons[1], "lesson", j * 2 - 1, type, wasLessonMutated));
     }
   }
 
-  return result;
+  return [result, wasMutated];
 }
 
 function isPair(type: UserType, lessons: (Lesson | undefined)[]): boolean {
@@ -171,22 +182,24 @@ function isPair(type: UserType, lessons: (Lesson | undefined)[]): boolean {
   return ac === bc || (!!ac && !!bc && ac[0] === bc[0]);
 }
 
-function getLessons(timetable: Timetable, type: UserType, date: Date): string[] {
+function getLessons(timetable: Timetable, type: UserType, date: Date): [string[], boolean] {
   const result: string[] = [];
+  let wasMutated = false;
 
   for (let i = 13; i > 0; i--) {
     const index: string = getLessonIndex(date.getDay(), i);
     let lesson: Lesson | undefined = timetable.schedule[index];
-    let wasMutated = false;
+    let wasLessonMutated = false;
 
     if (timetable.exchange)
-      [lesson, wasMutated] = mutateExchange(lesson, i, timetable.exchange);
+      [lesson, wasLessonMutated] = mutateExchange(lesson, i, timetable.exchange);
+    if (wasLessonMutated) wasMutated = true;
 
     if (lesson || result.length > 0)
-      result.push(getLessonText(lesson, "lesson", i, type, wasMutated));
+      result.push(getLessonText(lesson, "lesson", i, type, wasLessonMutated));
   }
 
-  return result;
+  return [result, wasMutated];
 }
 
 function getLessonIndex(day: number, i: number): string {

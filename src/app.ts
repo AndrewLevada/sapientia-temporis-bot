@@ -18,6 +18,7 @@ import { bindExchangeNotifications } from "./bot/exchange-notifications";
 import { bindTimePicker } from "./bot/time-picker";
 import { initDatabase } from "./services/db";
 import { initTimetableService } from "./services/timetable-service";
+import { initExchangeNotificationsService } from "./services/exchange-notifications-service";
 
 if (process.env.NODE_ENV !== "development") Sentry.init({
   dsn: process.env.SENTRY_DSN,
@@ -35,15 +36,17 @@ initTimetableService();
 startAnalyticsPageServer()
   .then(startAnalyticsBrowserEmulator)
   .then(initialFetchUsersTop)
-  .then(startBot);
+  .then(startBot)
+  .then(bot => initExchangeNotificationsService(bot));
 
-function startBot() {
+function startBot(): Promise<Telegraf> {
   const bot = new Telegraf(process.env.API_KEY as string);
   bindBot(bot);
   bot.launch().then(() => {
     process.once("SIGINT", () => bot.stop("SIGINT"));
     process.once("SIGTERM", () => bot.stop("SIGTERM"));
   });
+  return Promise.resolve(bot);
 }
 
 function bindBot(bot: Telegraf) {
