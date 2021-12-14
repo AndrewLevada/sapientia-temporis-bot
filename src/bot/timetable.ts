@@ -80,17 +80,15 @@ function getDayAwareWeekKeyboard(): any {
 }
 
 function collectAdditionalUserData(ctx: Context, userId: string, userInfo: UserInfo): void {
-  if (!userInfo.username || !userInfo.name) {
-    const additionalInfo: Partial<UserInfo> = {};
-    if (ctx.from?.first_name || ctx.from?.last_name)
-      additionalInfo.name = `${ctx.from?.first_name || ""} ${ctx.from?.last_name || ""}`;
-    if (ctx.from?.username) additionalInfo.username = ctx.from?.username;
-    if (additionalInfo !== {}) setUserInfo(userId, { ...userInfo, ...additionalInfo }).then();
-  }
+  const additionalInfo: Partial<UserInfo> = {};
+  const name = `${ctx.from?.first_name || ""} ${ctx.from?.last_name || ""}`;
+  if (userInfo.name !== name) additionalInfo.name = name;
+  if (userInfo.username !== ctx.from?.username) additionalInfo.username = ctx.from?.username;
+  if (additionalInfo !== {}) setUserInfo(userId, additionalInfo).then();
 
   logUserGroupChange(
     userId,
     userInfo.type === "student" ? inverseGroups[userInfo.group] : inverseTeachers[userInfo.group],
     true,
-  ); // Temp
+  );
 }
