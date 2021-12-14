@@ -18,7 +18,7 @@ function sendAllExchangeNotifications(bot: Telegraf): void {
     .then(users => Promise.all(users.map<Promise<void>>(user => getTimetableForDelta(user, 1).then(({ wasMutated }) => {
       if (wasMutated) {
         mutatedNum++;
-        return broadcastMessage(bot, { type: "userId", value: user.userId }, "Проверьте расписание, завтра у вас замена!").then();
+        return broadcastMessage(bot, { type: "userId", value: user.userId }, "Проверьте расписание, завтра у вас замена!", false).then();
       }
       return Promise.resolve();
     }))).then(getUsersCount).then(totalUsers => sendMessageToAdmin(bot, `Отправка уведомлений о заменах окончена. Статус: ${totalUsers}/${users.length}/${mutatedNum}`)));

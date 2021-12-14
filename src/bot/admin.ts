@@ -82,7 +82,7 @@ function processBroadcastConfirmation(bot: Telegraf, ctx: TextContext) {
   if (text.toLowerCase() === "yes" && broadcastState.group && broadcastState.text) {
     broadcastState.status = "none";
     ctx.reply("Хорошо, отправляю сообщения...")
-      .then(() => broadcastMessage(bot, broadcastState.group!, broadcastState.text!))
+      .then(() => broadcastMessage(bot, broadcastState.group!, broadcastState.text!, true))
       .then(status => ctx.reply(`Готово, сообщения отправленны: ${status}`));
   } else cancelBroadcast(ctx);
 }
