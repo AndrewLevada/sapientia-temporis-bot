@@ -19,7 +19,9 @@ export const settingsKeyboard = Markup.keyboard([
 export function bindGeneral(bot: Telegraf) {
   bot.start((ctx: Context) => {
     logEvent(ctx, "start_command");
-    ctx.reply(texts.res.general.start).then(() => changeUserInfo(ctx as any));
+    ctx.reply(texts.res.general.start)
+      .then(() => ctx.reply(texts.res.general.startTip))
+      .then(() => changeUserInfo(ctx as any));
   });
 
   bot.help(ctx => {
