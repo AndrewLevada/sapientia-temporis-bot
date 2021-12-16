@@ -39,7 +39,7 @@ export function bindAdmin(bot: Telegraf) {
     if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "broadcast_response") {
       logEvent(ctx, "broadcast_response");
       ctx.editMessageReplyMarkup(Markup.inlineKeyboard([
-        [{ text: "❤️", callback_data: "broadcast_response_" }],
+        [{ text: "❤️", callback_data: "ignore" }],
       ]).reply_markup);
     } else next();
   });
