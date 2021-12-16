@@ -17,6 +17,7 @@ export default {
       leaderboard: "⭐ Рейтинг классов️",
       changeGroup: "⚙️ Изменить класс",
       feedback: "✉️ Обратная связь",
+      adminSettings: "🛸 Admin Settings",
     },
 
     feedback: {

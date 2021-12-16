@@ -68,6 +68,11 @@ export function getUsersLeaderboard(): [string, number][] {
   return Object.entries(top).sort((a, b) => b[1] - a[1]);
 }
 
+export function getUsersWithExchangeNotificationsOn(): Promise<Record<string, UserInfo>> {
+  return db("users").orderByChild("doNotifyAboutExchanges").equalTo(true).once("value")
+    .then(snap => snap.val());
+}
+
 export function initialFetchUsersTop(): Promise<void> {
   return db("users").orderByChild("type").equalTo("student").once("value")
     .then(snapshot => {

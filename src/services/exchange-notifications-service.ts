@@ -1,7 +1,6 @@
 import schedule from "node-schedule";
 import { Telegraf } from "telegraf";
-import { db } from "./db";
-import { getUsersCount, UserInfo } from "./user-service";
+import { getUsersCount, getUsersWithExchangeNotificationsOn, UserInfo } from "./user-service";
 import { getTimetableForDelta } from "./timetable-service";
 import { broadcastMessage, sendMessageToAdmin } from "./broadcast-service";
 
@@ -13,8 +12,8 @@ export function initExchangeNotificationsService(bot: Telegraf): void {
 
 function sendAllExchangeNotifications(bot: Telegraf): void {
   let mutatedNum = 0;
-  db("users").orderByChild("doNotifyAboutExchanges").equalTo(true).once("value")
-    .then(snap => Object.entries<UserInfo>(snap.val()).map(v => ({ userId: v[0], ...v[1] })))
+  getUsersWithExchangeNotificationsOn()
+    .then(users => Object.entries<UserInfo>(users).map(v => ({ userId: v[0], ...v[1] })))
     .then(users => Promise.all(users.map<Promise<void>>(user => getTimetableForDelta(user, 1).then(({ wasMutated }) => {
       if (wasMutated) {
         mutatedNum++;

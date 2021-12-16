@@ -1,10 +1,11 @@
 import { Context, Markup, Telegraf } from "telegraf";
 import { CallbackQuery } from "typegram/callback";
-import { getTeachersList } from "../services/user-service";
-import { groups, inverseTeachers } from "../services/groups-service";
+import { groups } from "../services/groups-service";
 import { BroadcastGroup, BroadcastGroupType, broadcastMessage } from "../services/broadcast-service";
 import { adminUsername } from "../env";
 import { logEvent } from "../services/analytics-service";
+import texts from "./texts";
+import { getExchangeNotificationsReport, getStudentsReport, getTeachersReport } from "../services/reports-service";
 
 type TextContext = Context & { message: { text: string } };
 
@@ -15,11 +16,30 @@ const broadcastState: {
   text: string | null
 } = { status: "none", group: null, text: null };
 
+export const adminKeyboard = Markup.keyboard([
+  [texts.keys.settings.back],
+  ["/broadcast"],
+  ["/students_report"],
+  ["/teachers_report", "/exchange_notifications_report"],
+]).resize();
+
 // eslint-disable-next-line import/prefer-default-export
 export function bindAdmin(bot: Telegraf) {
-  bot.command("/teachers", ctx => {
+  bot.hears(texts.keys.settings.adminSettings, ctx => ctx.reply("Admin", adminKeyboard));
+
+  bot.command("/students_report", ctx => {
     if (ctx.message.from.username !== adminUsername) return;
-    getTeachersList().then(l => ctx.reply(l.map(v => inverseTeachers[v]).join("\n")));
+    ctx.reply(getStudentsReport());
+  });
+
+  bot.command("/teachers_report", ctx => {
+    if (ctx.message.from.username !== adminUsername) return;
+    getTeachersReport().then(report => ctx.reply(report));
+  });
+
+  bot.command("/exchange_notifications_report", ctx => {
+    if (ctx.message.from.username !== adminUsername) return;
+    getExchangeNotificationsReport().then(report => ctx.reply(report));
   });
 
   bot.command("/broadcast", ctx => {
@@ -33,6 +53,7 @@ export function bindAdmin(bot: Telegraf) {
     else if (broadcastState.status === "group") processBroadcastGroup(ctx);
     else if (broadcastState.status === "message") processBroadcastMessage(ctx);
     else if (broadcastState.status === "confirmation") processBroadcastConfirmation(bot, ctx);
+    else next();
   });
 
   bot.on("callback_query", (ctx, next) => {
