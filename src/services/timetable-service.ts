@@ -227,7 +227,7 @@ function getStudentLessonText(lesson: StudentLesson | undefined, type: LessonTyp
   if (!lesson) return `${getLessonNumber(type, i)}\\) Окно`;
 
   const subject = sanitizeTextForMD(subjects[lesson.s[0]]) || "?";
-  const room = rooms[lesson.r[0]] || "?";
+  const room = lesson.r ? rooms[lesson.r[0]] || "нет" : "нет";
   const roomMore = lesson.g ? ` и ${rooms[lesson.r[1]]}` : "";
   const timeArray = getLessonTimeArray(i, type);
 
@@ -243,7 +243,7 @@ function getTeacherLessonText(lesson: TeacherLesson | undefined, type: LessonTyp
 
   const subject = sanitizeTextForMD(subjects[lesson.s]) || "?";
   const group = lesson.c ? inverseGroups[lesson.c[0]].toUpperCase() : "?";
-  const room = lesson.r ? rooms[lesson.r] || "?" : "?";
+  const room = lesson.r ? rooms[lesson.r] || "нет" : "нет";
   const timeArray = getLessonTimeArray(i, type);
 
   let text = `${getLessonNumber(type, i)}\\) *${group}* \\- ${subject}\n`;
