@@ -1,5 +1,5 @@
 import { Context, Markup, Telegraf } from "telegraf";
-import { logEvent, logUserGroupChange } from "../services/analytics-service";
+import { logEvent, logUserPropChange } from "../services/analytics-service";
 import { dateToSimpleString,
   getDayOfWeekWithDelta,
   getUserIdFromCtx,
@@ -86,8 +86,9 @@ function collectAdditionalUserData(ctx: Context, userId: string, userInfo: UserI
   if (userInfo.username !== ctx.from?.username) additionalInfo.username = ctx.from?.username;
   if (additionalInfo !== {}) setUserInfo(userId, additionalInfo).then();
 
-  logUserGroupChange(
+  logUserPropChange(
     userId,
+    "group",
     userInfo.type === "student" ? inverseGroups[userInfo.group] : inverseTeachers[userInfo.group],
     true,
   );

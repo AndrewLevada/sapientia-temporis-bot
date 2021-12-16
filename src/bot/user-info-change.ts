@@ -1,6 +1,6 @@
 import { Context, Markup, Telegraf } from "telegraf";
 import { decodeGroupFromUserInfo, groups, searchForTeacher } from "../services/groups-service";
-import { logUserGroupChange } from "../services/analytics-service";
+import { logUserPropChange } from "../services/analytics-service";
 import { getUserIdFromCtx, isTodaySunday, TextContext } from "../utils";
 import { getUserInfo, setUserInfo } from "../services/user-service";
 import { sessions, resetUserSession, setUserSessionState } from "./env";
@@ -61,7 +61,7 @@ function processGroupChange(ctx: TextContext, userId: string) {
   if (sessions[userId].type === "student") {
     group = sessions[userId].grade + group;
     if (groups[group]) {
-      logUserGroupChange(getUserIdFromCtx(ctx as Context), group);
+      logUserPropChange(getUserIdFromCtx(ctx as Context), "group", group);
       setUserInfo(userId, {
         type: "student",
         group: groups[group],
@@ -75,7 +75,7 @@ function processGroupChange(ctx: TextContext, userId: string) {
   } else if (sessions[userId].type === "teacher") {
     const t = searchForTeacher(group);
     if (t) {
-      logUserGroupChange(getUserIdFromCtx(ctx as Context), t.fullName);
+      logUserPropChange(getUserIdFromCtx(ctx as Context), "group", t.fullName);
       setUserInfo(userId, {
         type: "teacher",
         group: t.code,

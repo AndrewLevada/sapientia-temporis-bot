@@ -30,8 +30,6 @@ export function startAnalyticsPageServer(): Promise<void> {
 }
 
 const titlesMap: Record<string, string> = {
-  "/feedback_open": "Обратная связь",
-  "/feedback_send": "Обратная связь",
   "/start_command": "Добро пожаловать",
   "/help_command": "Помощь",
   "/settings": "Настройки",
@@ -40,5 +38,8 @@ const titlesMap: Record<string, string> = {
   "/group_change": "Изменение группы",
   "/unrecognized": "Неопознаный текст",
   "/broadcast_response": "Ответ на трансляцию",
+  "/feedback_open": "Обратная связь",
+  "/feedback_send": "Отправка обратной связи",
   "/exchange_notifications": "Уведоиления о заменах",
+  "/exchange_notifications_change": "Изменение уведомления о заменах",
 };

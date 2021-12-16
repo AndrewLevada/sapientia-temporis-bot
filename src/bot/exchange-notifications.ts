@@ -1,6 +1,6 @@
 import { Context, Markup, Telegraf } from "telegraf";
 import texts from "./texts";
-import { logPageView } from "../services/analytics-service";
+import { logPageView, logUserPropChange } from "../services/analytics-service";
 import { sessions, setUserSessionState } from "./env";
 import { getUserIdFromCtx } from "../utils";
 import { setUserInfo } from "../services/user-service";
@@ -25,9 +25,15 @@ export function bindExchangeNotifications(bot: Telegraf) {
       return;
     }
 
-    if (ctx.message.text === "Хочу") setUserInfo(userId, { doNotifyAboutExchanges: true })
-      .then(() => ctx.reply(texts.res.exchangeNotifications.on, settingsKeyboard));
-    else if (ctx.message.text === "Не хочу") setUserInfo(userId, { doNotifyAboutExchanges: false })
-      .then(() => ctx.reply(texts.res.exchangeNotifications.off, settingsKeyboard));
+    if (ctx.message.text === "Хочу") changeExchangeNotifications(ctx, userId, true);
+    else if (ctx.message.text === "Не хочу") changeExchangeNotifications(ctx, userId, false);
   });
+}
+
+function changeExchangeNotifications(ctx: Context, userId: string, state: boolean): void {
+  setUserInfo(userId, { doNotifyAboutExchanges: state })
+    .then(() => {
+      ctx.reply(texts.res.exchangeNotifications[state ? "on" : "off"], settingsKeyboard).then();
+      logUserPropChange(userId, "exchange_notifications", state);
+    });
 }

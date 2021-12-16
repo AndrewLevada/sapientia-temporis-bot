@@ -38,11 +38,16 @@ export function logAdminEvent(name: string, params?: Record<string, any>): void 
   emulateSendEvent({ userId: "admin", name, params }).then();
 }
 
-export function logUserGroupChange(userId: string, group: string, onlyChangeProperty?: boolean): void {
+export type UserProperty = "group" | "exchange_notifications";
+
+// eslint-disable-next-line max-len
+export function logUserPropChange(userId: string, property: UserProperty, value: string | boolean, onlyChangeProperty?: boolean): void {
   if (userId === adminUserId && doIgnoreAdmin) return;
+  const o: Record<string, any> = {};
+  o[property] = value;
   (onlyChangeProperty ? Promise.resolve() : emulateSendEvent({
     userId,
-    name: "group_change",
-    params: { group },
-  })).then(() => emulateUserPropertiesUpdate({ userId, properties: { group } }));
+    name: `${property}_change`,
+    params: o,
+  })).then(() => emulateUserPropertiesUpdate({ userId, properties: o }));
 }
