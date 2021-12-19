@@ -53,8 +53,10 @@ export function getUsersIdsByGroup(group: BroadcastGroup): Promise<string[]> {
     .then(v => Object.entries(v.val()).filter(o => (o[1] as any).group === groups[group.value]).map(o => o[0]));
 }
 
-export function getUsersCount(): Promise<number> {
-  return db("users").once("value").then(snapshot => snapshot.numChildren());
+export function getUsersCount(userType?: UserType): Promise<number> {
+  if (!userType) return db("users").once("value").then(snapshot => snapshot.numChildren());
+  return db("users").orderByChild("type").equalTo(userType).once("value")
+    .then(snapshot => snapshot.numChildren());
 }
 
 export function getTeachersList(): Promise<string[]> {

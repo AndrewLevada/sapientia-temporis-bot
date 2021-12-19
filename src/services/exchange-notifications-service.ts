@@ -21,7 +21,7 @@ function sendAllExchangeNotifications(bot: Telegraf): void {
         return broadcastMessage(bot, { type: "userId", value: user.userId }, "Проверьте расписание, завтра у вас замена!", false, true).then();
       }
       return Promise.resolve();
-    }))).then(getUsersCount).then(totalUsers => {
+    }))).then(() => getUsersCount()).then(totalUsers => {
       if (mutatedNum !== 0) logAdminEvent("broadcast", { text: "Уведомления о заменах" });
       return sendMessageToAdmin(bot, `Отправка уведомлений о заменах окончена. Статус: ${totalUsers}/${users.length}/${mutatedNum}`);
     }));

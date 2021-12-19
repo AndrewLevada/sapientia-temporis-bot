@@ -1,4 +1,7 @@
-import { getTeachersList, getUsersLeaderboard, getUsersWithExchangeNotificationsOn } from "./user-service";
+import { getTeachersList,
+  getUsersCount,
+  getUsersLeaderboard,
+  getUsersWithExchangeNotificationsOn } from "./user-service";
 import { inverseGroups, inverseTeachers } from "./groups-service";
 
 export interface StudentsSection {
@@ -7,6 +10,9 @@ export interface StudentsSection {
 }
 
 export const studentReportSections: StudentsSection[] = [{
+  label: "0 (1)",
+  condition: n => n === 1,
+}, {
   label: "1 (2 - 4)",
   condition: n => n >= 2 && n <= 4,
 }, {
@@ -20,7 +26,7 @@ export const studentReportSections: StudentsSection[] = [{
   condition: n => n >= 20,
 }];
 
-export function getStudentsReport(): string {
+export function getStudentsReport(): Promise<string> {
   const top = getUsersLeaderboard();
   const sections: [string, number][][] = studentReportSections.map(() => []);
 
@@ -28,9 +34,13 @@ export function getStudentsReport(): string {
     for (let i = 0; i < studentReportSections.length; i++)
       if (studentReportSections[i].condition(group[1])) sections[i].push(group);
 
-  return sections.map((section, i) => `*️⃣ ${studentReportSections[i].label} \n${
-    section.map(v => `${inverseGroups[v[0]]} - ${v[1]}`).join("\n")
-  }`).join("\n\n");
+  return Promise.all([getUsersCount(), getUsersCount("student")]).then(([usersCount, studentsCount]) => {
+    let text = `Students report. Total count ${usersCount}/${studentsCount}\n\n`;
+    text += sections.map((section, i) => `*️⃣ ${studentReportSections[i].label} \n${
+      section.map(v => `${inverseGroups[v[0]]} - ${v[1]}`).join("\n")
+    }`).join("\n\n");
+    return text;
+  });
 }
 
 export function getExchangeNotificationsReport(): Promise<string> {

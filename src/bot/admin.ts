@@ -29,7 +29,7 @@ export function bindAdmin(bot: Telegraf) {
 
   bot.command("/students_report", ctx => {
     if (ctx.message.from.username !== adminUsername) return;
-    ctx.reply(getStudentsReport());
+    getStudentsReport().then(report => ctx.reply(report));
   });
 
   bot.command("/teachers_report", ctx => {
