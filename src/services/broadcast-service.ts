@@ -9,9 +9,9 @@ export interface BroadcastGroup {
   value: string;
 }
 
-// eslint-disable-next-line max-len
-export function broadcastMessage(bot: Telegraf, group: BroadcastGroup, text: string, withFeedback: boolean): Promise<string> {
-  logAdminEvent("broadcast", { group, text });
+export function broadcastMessage(bot: Telegraf, group: BroadcastGroup, text: string,
+                                 withFeedback: boolean, dontLogAnalytics?: boolean): Promise<string> {
+  if (!dontLogAnalytics) logAdminEvent("broadcast", { group, text });
 
   return getUsersIdsByGroup(group).then(ids => {
     const promises = [];

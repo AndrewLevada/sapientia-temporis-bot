@@ -3,6 +3,7 @@ import { Telegraf } from "telegraf";
 import { getUsersCount, getUsersWithExchangeNotificationsOn, UserInfo } from "./user-service";
 import { getTimetableForDelta } from "./timetable-service";
 import { broadcastMessage, sendMessageToAdmin } from "./broadcast-service";
+import { logAdminEvent } from "./analytics-service";
 
 // eslint-disable-next-line import/prefer-default-export
 export function initExchangeNotificationsService(bot: Telegraf): void {
@@ -17,8 +18,11 @@ function sendAllExchangeNotifications(bot: Telegraf): void {
     .then(users => Promise.all(users.map<Promise<void>>(user => getTimetableForDelta(user, 1).then(({ wasMutated }) => {
       if (wasMutated) {
         mutatedNum++;
-        return broadcastMessage(bot, { type: "userId", value: user.userId }, "Проверьте расписание, завтра у вас замена!", false).then();
+        return broadcastMessage(bot, { type: "userId", value: user.userId }, "Проверьте расписание, завтра у вас замена!", false, true).then();
       }
       return Promise.resolve();
-    }))).then(getUsersCount).then(totalUsers => sendMessageToAdmin(bot, `Отправка уведомлений о заменах окончена. Статус: ${totalUsers}/${users.length}/${mutatedNum}`)));
+    }))).then(getUsersCount).then(totalUsers => {
+      if (mutatedNum !== 0) logAdminEvent("broadcast", { text: "Уведомления о заменах" });
+      return sendMessageToAdmin(bot, `Отправка уведомлений о заменах окончена. Статус: ${totalUsers}/${users.length}/${mutatedNum}`);
+    }));
 }

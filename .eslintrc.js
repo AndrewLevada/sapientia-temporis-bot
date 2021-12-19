@@ -38,6 +38,7 @@ module.exports = {
     "no-cond-assign": "off",
     "no-unused-vars": "off",
     "no-param-reassign": "off",
+    "function-paren-newline": ["error", "never"],
     "@typescript-eslint/no-unused-vars": "error",
     "no-shadow": "off",
     "@typescript-eslint/no-shadow": "error",
