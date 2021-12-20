@@ -1,4 +1,6 @@
 import { Context } from "telegraf";
+import { UserInfo } from "./services/user-service";
+import { inverseGroups, inverseTeachers } from "./services/groups-service";
 
 export const workWeekStrings = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
 export const weekStrings = ["Воскресенье", ...workWeekStrings];
@@ -21,6 +23,10 @@ export function isTodaySunday(): boolean {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getUserIdFromCtx(ctx: { message?: unknown } & { update?: { callback_query?: any }} & Context): string {
   return (ctx.message || ctx.update.callback_query.message).chat.id.toString();
+}
+
+export function decodeGroupInUserInfo(userInfo: UserInfo): UserInfo {
+  return { ...userInfo, group: userInfo.type === "student" ? inverseGroups[userInfo.group] : inverseTeachers[userInfo.group] };
 }
 
 export type TextContext = Context & { message: { text: string } };

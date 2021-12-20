@@ -21,10 +21,8 @@ export function bindTimetable(bot: Telegraf) {
   bot.hears(texts.keys.default.yesterday, ctx => replyWithTimetableForDelta(ctx, -1));
 
   bot.hears(texts.keys.default.weekDay, ctx => ctx.reply(texts.res.timetable.pickWeekDay, getDayAwareWeekKeyboard()));
-  bot.hears(
-    workWeekStrings.map(v => new RegExp(`${v}( (Сегодня))?`)),
-    ctx => replyWithTimetableForDay(ctx, weekStrings.indexOf(ctx.message.text.split(" ")[0])),
-  );
+  bot.hears(workWeekStrings.map(v => new RegExp(`${v}( (Сегодня))?`)),
+    ctx => replyWithTimetableForDay(ctx, weekStrings.indexOf(ctx.message.text.split(" ")[0])));
 }
 
 export function replyWithTimetableForDelta(ctx: Context, dayDelta: number) {
@@ -86,10 +84,8 @@ function collectAdditionalUserData(ctx: Context, userId: string, userInfo: UserI
   if (userInfo.username !== ctx.from?.username) additionalInfo.username = ctx.from?.username;
   if (additionalInfo !== {}) setUserInfo(userId, additionalInfo).then();
 
-  logUserPropChange(
-    userId,
+  logUserPropChange(userId,
     "group",
     userInfo.type === "student" ? inverseGroups[userInfo.group] : inverseTeachers[userInfo.group],
-    true,
-  );
+    true);
 }
