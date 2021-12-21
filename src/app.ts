@@ -51,7 +51,8 @@ function startBot(): Promise<Telegraf> {
 
 function bindBot(bot: Telegraf) {
   bot.use((ctx, next) => {
-    Sentry.setUser({ id: getUserIdFromCtx(ctx) });
+    if (ctx) Sentry.setUser({ id: getUserIdFromCtx(ctx) });
+    else Sentry.setUser({ id: "no-ctx" });
     next().then();
   });
 
