@@ -2,13 +2,14 @@ import puppeteer, { Browser, Page } from "puppeteer";
 import { Event, PageViewEvent, UserPropertyUpdated } from "../analytics-service";
 import { analyticsServerPort } from "./server";
 import { getUserCookies, setUserCookies } from "./emulator-cookies-service";
-import { getBrowserSession, popFromEmulationRequestsQueue,
+import { getBrowserSession, getStaleQueueUserId, popFromEmulationRequestsQueue,
   pushToEmulationRequestsQueue,
   removeBrowserSession,
   setBrowserSession } from "./emulator-sessions-storage";
 
 const debugLog = false;
 const sessionIdleTime = 14000;
+const maxParallelSessions = 12;
 let browser!: Browser;
 
 export function startAnalyticsBrowserEmulator(): Promise<void> {
@@ -18,15 +19,13 @@ export function startAnalyticsBrowserEmulator(): Promise<void> {
 }
 
 export function emulateSendEvent(e: Event): Promise<void> {
-  return emulatePageView(
-    { userId: e.userId, url: `/${e.name}` },
+  return emulatePageView({ userId: e.userId, url: `/${e.name}` },
     page => page.evaluate((v: string) => new Promise(resolve => {
       const event = JSON.parse(v);
       if (event.params === undefined) event.params = {};
       event.params.event_callback = resolve;
       gtag("event", event.name, event.params);
-    }), JSON.stringify(e)).then(),
-  );
+    }), JSON.stringify(e)).then());
 }
 
 export function emulateUserPropertiesUpdate(e: UserPropertyUpdated): Promise<void> {
@@ -43,32 +42,32 @@ export function emulateUserPropertiesUpdate(e: UserPropertyUpdated): Promise<voi
 }
 
 export function emulatePageView(e: PageViewEvent, callback?: (page: Page)=> Promise<void>): Promise<void> {
-  const checkHash = Math.floor(Math.random() * 1000);
-  if (debugLog) console.log(`emulatePageView start ${checkHash} ${e.url}`);
+  const checkHash = Math.floor(Math.random() * 10000);
 
   const session = getBrowserSession(e.userId);
-  if (session && session.state !== "idle") {
-    if (debugLog) console.log("as queue");
+  if ((session && session.state !== "idle") || isSessionLimitReached()) {
+    if (debugLog) console.log(`emulate view QUEUE ${checkHash}`);
     pushToEmulationRequestsQueue({ callback, event: e });
     return Promise.resolve();
   }
-  if (debugLog) console.log("as now");
+  if (debugLog) console.log(`emulate view start NOW ${checkHash}`);
 
   setBrowserSession(e.userId, { state: "updating" });
   return (session ? continueSession(e) : createNewPage(e)).then(() => {
     (callback ? callback(getBrowserSession(e.userId)!.page!) : Promise.resolve()).then(() => {
       setBrowserSession(e.userId, { state: "idle" });
-      if (debugLog) console.log(`emulatePageView done ${checkHash} ${e.url}`);
+      if (debugLog) console.log(`emulate view DONE ${checkHash}`);
       if (!tryRunQueuedViews(e.userId))
         setBrowserSession(e.userId, { timeout: setTimeout(() => {
           if (getBrowserSession(e.userId)?.state !== "idle") return;
           setBrowserSession(e.userId, { state: "finishing" });
-          if (debugLog) console.log(`emulatePageView timeout ${checkHash} ${e.url}`);
+          if (debugLog) console.log(`emulate view TO ${checkHash}`);
           getBrowserSession(e.userId)!.page!.cookies()
             .then(cookies => Promise.all([
               setUserCookies(e.userId, cookies),
               getBrowserSession(e.userId)!.context!.close(),
-            ]).then(() => removeBrowserSession(e.userId)));
+            ]).then(() => removeBrowserSession(e.userId)))
+            .then(tryRunStaleQueuedViews);
         }, sessionIdleTime) });
     });
   });
@@ -109,11 +108,21 @@ function constructEmulatedUrl(e: PageViewEvent): string {
   return `http://localhost:${analyticsServerPort}${e.url}`;
 }
 
+function isSessionLimitReached(): boolean {
+  return browser.browserContexts().length >= maxParallelSessions;
+}
+
+function tryRunStaleQueuedViews(): void {
+  if (isSessionLimitReached()) return;
+  const userId = getStaleQueueUserId();
+  if (!userId) return;
+  tryRunQueuedViews(userId);
+}
+
 function tryRunQueuedViews(userId: string): boolean {
-  if (debugLog) console.log("test queue");
+  if (isSessionLimitReached()) return false;
   const request = popFromEmulationRequestsQueue(userId);
   if (!request) return false;
-  if (debugLog) console.log("queue pop");
   emulatePageView(request.event, request.callback).then();
   return true;
 }

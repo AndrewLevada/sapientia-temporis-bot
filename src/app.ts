@@ -42,11 +42,10 @@ startAnalyticsPageServer()
 function startBot(): Promise<Telegraf> {
   const bot = new Telegraf(process.env.API_KEY as string);
   bindBot(bot);
-  bot.launch().then(() => {
+  return bot.launch().then(() => {
     process.once("SIGINT", () => bot.stop("SIGINT"));
     process.once("SIGTERM", () => bot.stop("SIGTERM"));
-  });
-  return Promise.resolve(bot);
+  }).then(() => bot);
 }
 
 function bindBot(bot: Telegraf) {

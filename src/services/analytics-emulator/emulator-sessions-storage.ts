@@ -28,15 +28,23 @@ export function setBrowserSession(userId: string, value: Partial<EmulatedSession
 
 export function removeBrowserSession(userId: string) {
   delete sessions[userId];
-  delete queues[userId];
 }
 
 export function popFromEmulationRequestsQueue(userId: string): QueuedEmulationRequest | undefined {
-  return queues[userId] ? queues[userId].shift() : undefined;
+  if (queues[userId] === undefined) return undefined;
+  const popped = queues[userId].shift();
+  if (queues[userId].length === 0) delete queues[userId];
+  return popped;
 }
 
 export function pushToEmulationRequestsQueue(request: QueuedEmulationRequest): void {
   const { userId } = request.event;
   if (!queues[userId]) queues[userId] = [];
   queues[userId].push(request);
+}
+
+export function getStaleQueueUserId(): string | undefined {
+  const userIds = Object.keys(queues);
+  for (const userId of userIds) if (sessions[userId] === undefined) return userId;
+  return undefined;
 }
