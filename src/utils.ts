@@ -21,8 +21,8 @@ export function isTodaySunday(): boolean {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function getUserIdFromCtx(ctx: { message?: unknown } & { update?: { callback_query?: any }} & Context): string {
-  return (ctx.message || ctx.update.callback_query.message).chat.id.toString();
+export function getUserIdFromCtx(ctx: Context): string {
+  return ctx.from!.id.toString();
 }
 
 export function decodeGroupInUserInfo(userInfo: UserInfo): UserInfo {
