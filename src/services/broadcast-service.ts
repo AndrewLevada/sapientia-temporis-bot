@@ -16,7 +16,7 @@ export function broadcastMessage(bot: Telegraf, group: BroadcastGroup, text: str
   return getUsersIdsByGroup(group).then(ids => {
     const promises = [];
     let fails = 0;
-    for (const id of ids) promises.push(sendMessage(id).catch(onFail));
+    for (let i = 0; i < ids.length; i++) promises.push(sendMessage(ids[i], i).catch(onFail));
     return Promise.all(promises).then(() => `${ids.length - fails} / ${ids.length}`);
 
     function onFail() {
@@ -24,10 +24,11 @@ export function broadcastMessage(bot: Telegraf, group: BroadcastGroup, text: str
       return Promise.resolve();
     }
 
-    function sendMessage(id: string): Promise<void> {
-      if (withFeedback) return bot.telegram.sendMessage(id, text, Markup.inlineKeyboard([
-        [{ text: "🤍️", callback_data: "broadcast_response" }],
-      ])).then();
+    function sendMessage(id: string, n: number): Promise<void> {
+      if (withFeedback) return delay(n * 100)
+        .then(() => bot.telegram.sendMessage(id, text, Markup.inlineKeyboard([
+          [{ text: "🤍️", callback_data: "broadcast_response" }],
+        ]))).then();
       return bot.telegram.sendMessage(id, text).then();
     }
   });
@@ -35,4 +36,10 @@ export function broadcastMessage(bot: Telegraf, group: BroadcastGroup, text: str
 
 export function sendMessageToAdmin(bot: Telegraf, text: string): Promise<void> {
   return bot.telegram.sendMessage(adminUserId, text).then();
+}
+
+function delay(n: number) {
+  return new Promise(resolve => {
+    setTimeout(resolve, n);
+  });
 }
