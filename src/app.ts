@@ -3,6 +3,7 @@ import * as admin from "firebase-admin";
 import * as Sentry from "@sentry/node";
 import { CallbackQuery } from "typegram";
 import telegrafThrottler from "telegraf-throttler";
+import Bottleneck from "bottleneck";
 import { initialFetchUsersTop } from "./services/user-service";
 import { bindUserInfoChange } from "./bot/user-info-change";
 import { bindTimetable } from "./bot/timetable";
@@ -48,12 +49,17 @@ function startBot(): Promise<Telegraf> {
       highWater: 1,
       maxConcurrent: 1,
       minTime: 1200,
+      strategy: Bottleneck.strategy.OVERFLOW,
     },
     out: {
       minTime: 20,
       reservoir: 100,
       reservoirRefreshAmount: 100,
       reservoirRefreshInterval: 2000,
+    },
+    inThrottlerError: ctx => {
+      console.log(`Throttle drop of ${getUserIdFromCtx(ctx)}`);
+      return Promise.resolve();
     },
   }));
 
@@ -66,7 +72,6 @@ function startBot(): Promise<Telegraf> {
 
 function bindBot(bot: Telegraf) {
   bot.use((ctx, next) => {
-    console.log("PROCESS");
     if (ctx) Sentry.setUser({ id: getUserIdFromCtx(ctx) });
     else Sentry.setUser({ id: "no-ctx" });
     next().then();
