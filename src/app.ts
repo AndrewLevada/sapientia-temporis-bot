@@ -2,6 +2,7 @@ import { Telegraf } from "telegraf";
 import * as admin from "firebase-admin";
 import * as Sentry from "@sentry/node";
 import { CallbackQuery } from "typegram";
+import telegrafThrottler from "telegraf-throttler";
 import { initialFetchUsersTop } from "./services/user-service";
 import { bindUserInfoChange } from "./bot/user-info-change";
 import { bindTimetable } from "./bot/timetable";
@@ -41,6 +42,21 @@ startAnalyticsPageServer()
 
 function startBot(): Promise<Telegraf> {
   const bot = new Telegraf(process.env.API_KEY as string);
+
+  bot.use(telegrafThrottler({
+    in: {
+      highWater: 1,
+      maxConcurrent: 1,
+      minTime: 1200,
+    },
+    out: {
+      minTime: 20,
+      reservoir: 100,
+      reservoirRefreshAmount: 100,
+      reservoirRefreshInterval: 2000,
+    },
+  }));
+
   bindBot(bot);
   return bot.launch().then(() => {
     process.once("SIGINT", () => bot.stop("SIGINT"));
@@ -50,6 +66,7 @@ function startBot(): Promise<Telegraf> {
 
 function bindBot(bot: Telegraf) {
   bot.use((ctx, next) => {
+    console.log("PROCESS");
     if (ctx) Sentry.setUser({ id: getUserIdFromCtx(ctx) });
     else Sentry.setUser({ id: "no-ctx" });
     next().then();
