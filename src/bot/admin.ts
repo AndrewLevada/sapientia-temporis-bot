@@ -45,7 +45,7 @@ export function bindAdmin(bot: Telegraf) {
   bot.command("/broadcast", ctx => {
     if (ctx.message.from.username !== adminUsername) return;
     broadcastState.status = "group";
-    ctx.reply("Хорошо, Перехожу в режим трансляции. Введите название группы для трансляции (10a, 10, students, teachers, all, userId), cancel для отмены.");
+    ctx.reply("Хорошо, Перехожу в режим трансляции. Введите название группы для трансляции (10a, 10, students, teachers, all, userId, userIdList), cancel для отмены.");
   });
 
   bot.on("text", (ctx, next) => {
@@ -67,7 +67,7 @@ export function bindAdmin(bot: Telegraf) {
 }
 
 function processBroadcastGroup(ctx: TextContext) {
-  const group = ctx.message.text.toLowerCase();
+  let group = ctx.message.text.toLowerCase();
   if (group === "cancel") {
     cancelBroadcast(ctx);
     return;
@@ -77,7 +77,10 @@ function processBroadcastGroup(ctx: TextContext) {
   if (["all", "students", "teachers"].includes(group)) groupType = "section";
   else if (["5", "6", "7", "8", "9", "10", "11"].includes(group)) groupType = "grade";
   else if (!Number.isNaN(parseInt(group)) && parseInt(group) > 10 ** 7) groupType = "userId";
-  else if (groups[group]) groupType = "group";
+  else if (group.startsWith("[") && group.endsWith("]")) {
+    groupType = "userIdList";
+    group = group.substring(1, group.length - 1);
+  } else if (groups[group]) groupType = "group";
 
   if (groupType) {
     broadcastState.status = "message";

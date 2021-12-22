@@ -48,6 +48,7 @@ export function getUsersIdsByGroup(group: BroadcastGroup): Promise<string[]> {
       .map(o => o[0]));
 
   if (group.type === "userId") return Promise.resolve([group.value]);
+  if (group.type === "userIdList") return Promise.resolve(group.value.split(", "));
 
   return db("users").orderByChild("type").equalTo("student").once("value")
     .then(v => Object.entries(v.val()).filter(o => (o[1] as any).group === groups[group.value]).map(o => o[0]));

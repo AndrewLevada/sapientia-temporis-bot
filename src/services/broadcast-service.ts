@@ -3,7 +3,7 @@ import { getUsersIdsByGroup } from "./user-service";
 import { logAdminEvent } from "./analytics-service";
 import { adminUserId } from "../env";
 
-export type BroadcastGroupType = "section" | "grade" | "group" | "userId";
+export type BroadcastGroupType = "section" | "grade" | "group" | "userId" | "userIdList";
 export interface BroadcastGroup {
   type: BroadcastGroupType;
   value: string;
