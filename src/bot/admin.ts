@@ -76,7 +76,7 @@ function processBroadcastGroup(ctx: TextContext) {
   let groupType: BroadcastGroupType | null = null;
   if (["all", "students", "teachers"].includes(group)) groupType = "section";
   else if (["5", "6", "7", "8", "9", "10", "11"].includes(group)) groupType = "grade";
-  else if (!Number.isNaN(parseInt(group)) && parseInt(group) > 10 ** 7) groupType = "userId";
+  else if (!Number.isNaN(parseInt(group)) && parseInt(group) > 10 ** 4) groupType = "userId";
   else if (group.startsWith("[") && group.endsWith("]")) {
     groupType = "userIdList";
     group = group.substring(1, group.length - 1);
