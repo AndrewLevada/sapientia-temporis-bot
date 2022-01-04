@@ -26,7 +26,7 @@ export function broadcastMessage(bot: Telegraf, group: BroadcastGroup, text: str
     }
 
     function sendMessage(id: string, n: number): Promise<void> {
-      if (withFeedback) return delay(n * 100)
+      if (withFeedback) return delay(n * 500)
         .then(() => bot.telegram.sendMessage(id, text, Markup.inlineKeyboard([
           [{ text: "🤍️", callback_data: "broadcast_response" }],
         ]))).then();
