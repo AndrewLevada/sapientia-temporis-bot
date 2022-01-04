@@ -91,14 +91,15 @@ function updateHashedData(version: string): Promise<void> {
   return axios.get(`http://raspisanie.nikasoft.ru/static/public/${version}`).then(res => {
     const rawData: string = (res.data as string).split("var NIKA=\r\n")[1].split(";")[0];
     const data = JSON.parse(rawData);
+    const lastPeriod = Object.keys(data.CLASS_SCHEDULE).length;
 
     return Promise.all([
       hashPromise,
       db("timetable/subjects").set(data.SUBJECTS),
       db("timetable/rooms").set(data.ROOMS),
-      db("timetable/schedule").set(data.CLASS_SCHEDULE),
+      db("timetable/schedule").set(data.CLASS_SCHEDULE[lastPeriod]),
       db("timetable/exchange").set(correctExchangeDatesFormat(data.CLASS_EXCHANGE)),
-      db("timetable/teacher_schedule").set(data.TEACH_SCHEDULE),
+      db("timetable/teacher_schedule").set(data.TEACH_SCHEDULE[lastPeriod]),
       db("timetable/teacher_exchange").set(correctExchangeDatesFormat(data.TEACH_EXCHANGE)),
     ]).then();
   });
@@ -118,7 +119,7 @@ function constructTimetable(info: UserInfo, date: Date): Promise<DateTimetable> 
   const dateString: string = `${date.getDate() < 10 ? "0" : ""}${date.getDate()}-${date.getMonth() < 9 ? "0" : ""}${date.getMonth() + 1}-${date.getFullYear()}`;
 
   return Promise.all([
-    (info.type === "teacher" ? db("timetable/teacher_schedule") : db("timetable/schedule")).child(`${process.env.PERIOD_ID as string}/${info.group}`).once("value"),
+    (info.type === "teacher" ? db("timetable/teacher_schedule") : db("timetable/schedule")).child(`${info.group}`).once("value"),
     (info.type === "teacher" ? db("timetable/teacher_exchange") : db("timetable/exchange")).child(`${info.group}/${dateString}`).once("value"),
   ]).then(([scheduleSnapshot, exchangeSnapshot]) => {
     const timetable: Timetable = {
