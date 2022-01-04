@@ -2,8 +2,8 @@ import { Context, Telegraf as GenericTelegraf } from "telegraf";
 import * as admin from "firebase-admin";
 import * as Sentry from "@sentry/node";
 import { CallbackQuery } from "typegram";
-// import telegrafThrottler from "telegraf-throttler";
-// import Bottleneck from "bottleneck";
+import telegrafThrottler from "telegraf-throttler";
+import Bottleneck from "bottleneck";
 import { initialFetchUsersTop } from "./services/user-service";
 import { bindUserInfoChange } from "./bot/user-info-change";
 import { bindTimetable } from "./bot/timetable";
@@ -49,20 +49,20 @@ startAnalyticsPageServer()
 function startBot(): Promise<Telegraf> {
   const bot = new GenericTelegraf(process.env.API_KEY as string, { contextType: CustomContext });
 
-  // bot.use(telegrafThrottler({
-  //   in: {
-  //     highWater: 1,
-  //     maxConcurrent: 1,
-  //     minTime: 1200,
-  //     strategy: Bottleneck.strategy.OVERFLOW,
-  //   },
-  //   out: {
-  //     minTime: 20,
-  //     reservoir: 100,
-  //     reservoirRefreshAmount: 100,
-  //     reservoirRefreshInterval: 2000,
-  //   },
-  // }));
+  bot.use(telegrafThrottler({
+    in: {
+      highWater: 1,
+      maxConcurrent: 1,
+      minTime: 1200,
+      strategy: Bottleneck.strategy.OVERFLOW,
+    },
+    out: {
+      minTime: 20,
+      reservoir: 100,
+      reservoirRefreshAmount: 100,
+      reservoirRefreshInterval: 2000,
+    },
+  }));
 
   bindBot(bot);
   return bot.launch().then(() => {
