@@ -1,9 +1,9 @@
-import { Context, Markup, Telegraf } from "telegraf";
+import { Markup } from "telegraf";
 import { logEvent, logPageView } from "../services/analytics-service";
 import { changeUserInfo } from "./user-info-change";
 import texts from "./texts";
-import { getUserIdFromCtx } from "../utils";
 import { adminUserId } from "../env";
+import { CustomContext, Telegraf } from "../app";
 
 export const defaultKeyboard = Markup.keyboard([
   [texts.keys.default.today],
@@ -26,7 +26,7 @@ export const adminSettingsKeyboard = Markup.keyboard([
 ]).resize();
 
 export function bindGeneral(bot: Telegraf) {
-  bot.start((ctx: Context) => {
+  bot.start((ctx: CustomContext) => {
     logEvent(ctx, "start_command");
     ctx.reply(texts.res.general.start)
       .then(() => ctx.reply(texts.res.general.startTip))
@@ -44,8 +44,8 @@ export function bindGeneral(bot: Telegraf) {
   bot.hears(texts.keys.settings.back, ctx => ctx.reply("ОК", defaultKeyboard));
 }
 
-function replyWithSettings(ctx: Context) {
+function replyWithSettings(ctx: CustomContext) {
   logPageView(ctx, "/settings");
-  if (getUserIdFromCtx(ctx) === adminUserId) ctx.reply(texts.res.general.settings, adminSettingsKeyboard).then();
+  if (ctx.userId === adminUserId) ctx.reply(texts.res.general.settings, adminSettingsKeyboard).then();
   else ctx.reply(texts.res.general.settings, settingsKeyboard).then();
 }

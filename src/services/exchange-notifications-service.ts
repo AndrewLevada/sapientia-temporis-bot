@@ -1,9 +1,9 @@
 import schedule from "node-schedule";
-import { Telegraf } from "telegraf";
 import { getUsersCount, getUsersWithExchangeNotificationsOn, UserInfo } from "./user-service";
 import { getTimetableForDelta } from "./timetable-service";
 import { broadcastMessage, sendMessageToAdmin } from "./broadcast-service";
 import { logAdminEvent } from "./analytics-service";
+import { Telegraf } from "../app";
 
 // eslint-disable-next-line import/prefer-default-export
 export function initExchangeNotificationsService(bot: Telegraf): void {

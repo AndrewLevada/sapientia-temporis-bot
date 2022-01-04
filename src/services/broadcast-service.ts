@@ -1,7 +1,8 @@
-import { Markup, Telegraf } from "telegraf";
+import { Markup } from "telegraf";
 import { getUsersIdsByGroup } from "./user-service";
 import { logAdminEvent } from "./analytics-service";
 import { adminUserId } from "../env";
+import { Telegraf } from "../app";
 
 export type BroadcastGroupType = "section" | "grade" | "group" | "userId" | "userIdList";
 export interface BroadcastGroup {

@@ -1,10 +1,10 @@
-import { Context, Markup, Telegraf } from "telegraf";
+import { Markup } from "telegraf";
 import texts from "./texts";
 import { logPageView, logUserPropChange } from "../services/analytics-service";
 import { sessions, setUserSessionState } from "./env";
-import { getUserIdFromCtx } from "../utils";
 import { setUserInfo } from "../services/user-service";
 import { settingsKeyboard } from "./general";
+import { CustomContext, Telegraf } from "../app";
 
 export const onOffKeyboard = Markup.keyboard([
   [texts.keys.exchangeNotifications.on], [texts.keys.exchangeNotifications.off],
@@ -14,23 +14,22 @@ export const onOffKeyboard = Markup.keyboard([
 export function bindExchangeNotifications(bot: Telegraf) {
   bot.hears(texts.keys.settings.scheduledNotifications, ctx => {
     logPageView(ctx, "/exchange_notifications");
-    setUserSessionState(getUserIdFromCtx(ctx as Context), "exchange-notifications");
+    setUserSessionState(ctx.userId, "exchange-notifications");
     ctx.reply(texts.res.exchangeNotifications.intro, onOffKeyboard);
   });
 
   bot.on("text", (ctx, next) => {
-    const userId = getUserIdFromCtx(ctx as Context);
-    if (!sessions[userId] || sessions[userId].state !== "exchange-notifications") {
+    if (!sessions[ctx.userId] || sessions[ctx.userId].state !== "exchange-notifications") {
       next();
       return;
     }
 
-    if (ctx.message.text === "Хочу") changeExchangeNotifications(ctx, userId, true);
-    else if (ctx.message.text === "Не хочу") changeExchangeNotifications(ctx, userId, false);
+    if (ctx.message.text === "Хочу") changeExchangeNotifications(ctx, ctx.userId, true);
+    else if (ctx.message.text === "Не хочу") changeExchangeNotifications(ctx, ctx.userId, false);
   });
 }
 
-function changeExchangeNotifications(ctx: Context, userId: string, state: boolean): void {
+function changeExchangeNotifications(ctx: CustomContext, userId: string, state: boolean): void {
   setUserInfo(userId, { doNotifyAboutExchanges: state })
     .then(() => {
       ctx.reply(texts.res.exchangeNotifications[state ? "on" : "off"], settingsKeyboard).then();

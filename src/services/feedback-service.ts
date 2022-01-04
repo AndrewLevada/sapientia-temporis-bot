@@ -1,8 +1,8 @@
-import { Telegraf } from "telegraf";
 import { getUserInfo, UserType } from "./user-service";
 import { inverseGroups, inverseTeachers } from "./groups-service";
 import { sendMessageToAdmin } from "./broadcast-service";
 import { db } from "./db";
+import { Telegraf } from "../app";
 
 interface FeedbackReport {
   userId: string;

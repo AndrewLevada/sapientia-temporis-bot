@@ -1,9 +1,9 @@
-import { Telegraf } from "telegraf";
+import { Context, Telegraf as GenericTelegraf } from "telegraf";
 import * as admin from "firebase-admin";
 import * as Sentry from "@sentry/node";
 import { CallbackQuery } from "typegram";
-import telegrafThrottler from "telegraf-throttler";
-import Bottleneck from "bottleneck";
+// import telegrafThrottler from "telegraf-throttler";
+// import Bottleneck from "bottleneck";
 import { initialFetchUsersTop } from "./services/user-service";
 import { bindUserInfoChange } from "./bot/user-info-change";
 import { bindTimetable } from "./bot/timetable";
@@ -15,12 +15,17 @@ import { startAnalyticsPageServer } from "./services/analytics-emulator/server";
 import { startAnalyticsBrowserEmulator } from "./services/analytics-emulator/browser-emulator";
 import { logEvent } from "./services/analytics-service";
 import "@sentry/tracing";
-import { getUserIdFromCtx } from "./utils";
 import { bindExchangeNotifications } from "./bot/exchange-notifications";
 import { bindTimePicker } from "./bot/time-picker";
 import { initDatabase } from "./services/db";
 import { initTimetableService } from "./services/timetable-service";
 import { initExchangeNotificationsService } from "./services/exchange-notifications-service";
+
+export class CustomContext extends Context {
+  userId!: string;
+}
+
+export type Telegraf = GenericTelegraf<CustomContext>;
 
 if (process.env.NODE_ENV !== "development") Sentry.init({
   dsn: process.env.SENTRY_DSN,
@@ -42,26 +47,22 @@ startAnalyticsPageServer()
   .then(bot => initExchangeNotificationsService(bot));
 
 function startBot(): Promise<Telegraf> {
-  const bot = new Telegraf(process.env.API_KEY as string);
+  const bot = new GenericTelegraf(process.env.API_KEY as string, { contextType: CustomContext });
 
-  bot.use(telegrafThrottler({
-    in: {
-      highWater: 1,
-      maxConcurrent: 1,
-      minTime: 1200,
-      strategy: Bottleneck.strategy.OVERFLOW,
-    },
-    out: {
-      minTime: 20,
-      reservoir: 100,
-      reservoirRefreshAmount: 100,
-      reservoirRefreshInterval: 2000,
-    },
-    inThrottlerError: ctx => {
-      console.log(`Throttle drop of ${getUserIdFromCtx(ctx)}`);
-      return Promise.resolve();
-    },
-  }));
+  // bot.use(telegrafThrottler({
+  //   in: {
+  //     highWater: 1,
+  //     maxConcurrent: 1,
+  //     minTime: 1200,
+  //     strategy: Bottleneck.strategy.OVERFLOW,
+  //   },
+  //   out: {
+  //     minTime: 20,
+  //     reservoir: 100,
+  //     reservoirRefreshAmount: 100,
+  //     reservoirRefreshInterval: 2000,
+  //   },
+  // }));
 
   bindBot(bot);
   return bot.launch().then(() => {
@@ -72,7 +73,9 @@ function startBot(): Promise<Telegraf> {
 
 function bindBot(bot: Telegraf) {
   bot.use((ctx, next) => {
-    Sentry.setUser({ id: getUserIdFromCtx(ctx) });
+    const userId = ctx.from!.id.toString();
+    Sentry.setUser({ id: userId });
+    ctx.userId = userId;
     next().then();
   });
 

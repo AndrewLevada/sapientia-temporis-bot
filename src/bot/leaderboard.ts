@@ -1,9 +1,9 @@
-import { Context, Telegraf } from "telegraf";
 import { logEvent } from "../services/analytics-service";
 import { getUsersCount, getUsersLeaderboard } from "../services/user-service";
 import { inverseGroups } from "../services/groups-service";
 import { defaultKeyboard } from "./general";
 import texts from "./texts";
+import { CustomContext, Telegraf } from "../app";
 
 const leaderboardPlaces = ["🥇", "🥈", "🥉"];
 
@@ -12,7 +12,7 @@ export function bindLeaderboard(bot: Telegraf) {
   bot.hears(texts.keys.settings.leaderboard, ctx => replyWithGroupsTop(ctx));
 }
 
-function replyWithGroupsTop(ctx: Context) {
+function replyWithGroupsTop(ctx: CustomContext) {
   logEvent(ctx, "leaderboard_view");
   Promise.all([getUsersLeaderboard(), getUsersCount()]).then(([rawLeaderboard, count]) => {
     const leaderboard = rawLeaderboard.map(v => `*${inverseGroups[v[0]]}* \\- ${v[1]}`);

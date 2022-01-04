@@ -1,8 +1,6 @@
-import { Context } from "telegraf";
-import { emulatePageView, emulateSendEvent,
-  emulateUserPropertiesUpdate } from "./analytics-emulator/browser-emulator";
-import { getUserIdFromCtx } from "../utils";
+import { emulatePageView, emulateSendEvent, emulateUserPropertiesUpdate } from "./analytics-emulator/browser-emulator";
 import { adminUserId } from "../env";
+import { CustomContext } from "../app";
 
 const doIgnoreAdmin = true;
 
@@ -22,14 +20,13 @@ export interface UserPropertyUpdated {
   properties: Record<string, any>;
 }
 
-export function logPageView(ctx: Context, url: string): void {
-  const userId = getUserIdFromCtx(ctx);
-  if (userId === adminUserId && doIgnoreAdmin) return;
-  emulatePageView({ userId, url }).then();
+export function logPageView(ctx: CustomContext, url: string): void {
+  if (ctx.userId === adminUserId && doIgnoreAdmin) return;
+  emulatePageView({ userId: ctx.userId, url }).then();
 }
 
-export function logEvent(userIdProvider: Context | string, name: string, params?: Record<string, any>): void {
-  const userId = typeof userIdProvider === "string" ? userIdProvider : getUserIdFromCtx(userIdProvider);
+export function logEvent(userIdProvider: CustomContext | string, name: string, params?: Record<string, any>): void {
+  const userId = typeof userIdProvider === "string" ? userIdProvider : userIdProvider.userId;
   if (userId === adminUserId && doIgnoreAdmin) return;
   emulateSendEvent({ userId, name, params }).then();
 }

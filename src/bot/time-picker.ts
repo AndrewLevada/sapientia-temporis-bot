@@ -1,5 +1,6 @@
-import { Markup, Telegraf } from "telegraf";
+import { Markup } from "telegraf";
 import { CallbackQuery } from "typegram/callback";
+import { Telegraf } from "../app";
 
 // NOT USED NOW
 // Also not quite really (minutes work, hours don't)

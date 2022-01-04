@@ -1,10 +1,6 @@
-import { Context, Markup, Telegraf } from "telegraf";
+import { Markup } from "telegraf";
 import { logEvent, logUserPropChange } from "../services/analytics-service";
-import { dateToSimpleString,
-  getDayOfWeekWithDelta,
-  getUserIdFromCtx,
-  weekStrings,
-  workWeekStrings } from "../utils";
+import { dateToSimpleString, getDayOfWeekWithDelta, weekStrings, workWeekStrings } from "../utils";
 import { getUserInfo, setUserInfo, UserInfo } from "../services/user-service";
 import { DateTimetable, getTimetable, getTimetableForDelta } from "../services/timetable-service";
 import { changeUserInfo } from "./user-info-change";
@@ -12,6 +8,7 @@ import { defaultKeyboard } from "./general";
 import { resetUserSession } from "./env";
 import { inverseGroups, inverseTeachers } from "../services/groups-service";
 import texts from "./texts";
+import { CustomContext, Telegraf } from "../app";
 
 const deltaDayStrings = [texts.keys.default.yesterday, texts.keys.default.today, texts.keys.default.tomorrow];
 
@@ -25,19 +22,18 @@ export function bindTimetable(bot: Telegraf) {
     ctx => replyWithTimetableForDay(ctx, weekStrings.indexOf(ctx.message.text.split(" ")[0])));
 }
 
-export function replyWithTimetableForDelta(ctx: Context, dayDelta: number) {
+export function replyWithTimetableForDelta(ctx: CustomContext, dayDelta: number) {
   if (!ctx.message) return;
 
-  const userId = getUserIdFromCtx(ctx);
-  resetUserSession(userId);
-  getUserInfo(userId).then(info => {
+  resetUserSession(ctx.userId);
+  getUserInfo(ctx.userId).then(info => {
     if (!info || !info.type || !info.group) {
       ctx.reply(texts.res.timetable.updateRequired).then(() => changeUserInfo(ctx));
       return;
     }
 
-    logEvent(userId, "timetable_view", { type: "delta", dayDelta });
-    collectAdditionalUserData(ctx, userId, info);
+    logEvent(ctx, "timetable_view", { type: "delta", dayDelta });
+    collectAdditionalUserData(ctx, info);
 
     getTimetableForDelta(info, dayDelta).then((timetable: DateTimetable) => {
       ctx.replyWithMarkdownV2(`${deltaDayStrings[dayDelta + 1]} ${weekStrings[getDayOfWeekWithDelta(dayDelta)]}: \n\n${timetable.lessons.join("\n\n")}`, defaultKeyboard);
@@ -45,19 +41,18 @@ export function replyWithTimetableForDelta(ctx: Context, dayDelta: number) {
   });
 }
 
-export function replyWithTimetableForDay(ctx: Context, day: number) {
+export function replyWithTimetableForDay(ctx: CustomContext, day: number) {
   if (!ctx.message) return;
 
-  const userId = getUserIdFromCtx(ctx);
-  resetUserSession(userId);
-  getUserInfo(userId).then(info => {
+  resetUserSession(ctx.userId);
+  getUserInfo(ctx.userId).then(info => {
     if (!info || !info.type || !info.group) {
       ctx.reply(texts.res.timetable.updateRequired).then(() => changeUserInfo(ctx));
       return;
     }
 
-    logEvent(userId, "timetable_view", { type: "week", day });
-    collectAdditionalUserData(ctx, userId, info);
+    logEvent(ctx, "timetable_view", { type: "week", day });
+    collectAdditionalUserData(ctx, info);
 
     const now = new Date();
     const date = new Date(now.valueOf()
@@ -77,14 +72,14 @@ function getDayAwareWeekKeyboard(): any {
   return Markup.keyboard(buttons);
 }
 
-function collectAdditionalUserData(ctx: Context, userId: string, userInfo: UserInfo): void {
+function collectAdditionalUserData(ctx: CustomContext, userInfo: UserInfo): void {
   const additionalInfo: Partial<UserInfo> = {};
   const name = `${ctx.from?.first_name || ""} ${ctx.from?.last_name || ""}`;
   if (userInfo.name !== name) additionalInfo.name = name;
   if (userInfo.username !== ctx.from?.username) additionalInfo.username = ctx.from?.username;
-  if (additionalInfo !== {}) setUserInfo(userId, additionalInfo).then();
+  if (additionalInfo !== {}) setUserInfo(ctx.userId, additionalInfo).then();
 
-  logUserPropChange(userId,
+  logUserPropChange(ctx.userId,
     "group",
     userInfo.type === "student" ? inverseGroups[userInfo.group] : inverseTeachers[userInfo.group],
     true);

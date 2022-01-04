@@ -1,8 +1,8 @@
 import { database } from "firebase-admin";
-import Reference = database.Reference;
-import Database = database.Database;
 import { UserInfo } from "../services/user-service";
 import { decodeGroupInUserInfo } from "../utils";
+import Reference = database.Reference;
+import Database = database.Database;
 
 // eslint-disable-next-line import/no-mutable-exports
 export let usersRef!: Reference;

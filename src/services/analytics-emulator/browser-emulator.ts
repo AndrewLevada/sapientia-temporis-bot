@@ -2,7 +2,9 @@ import puppeteer, { Browser, Page } from "puppeteer";
 import { Event, PageViewEvent, UserPropertyUpdated } from "../analytics-service";
 import { analyticsServerPort } from "./server";
 import { getUserCookies, setUserCookies } from "./emulator-cookies-service";
-import { getBrowserSession, getStaleQueueUserId, popFromEmulationRequestsQueue,
+import { getBrowserSession,
+  getStaleQueueUserId,
+  popFromEmulationRequestsQueue,
   pushToEmulationRequestsQueue,
   removeBrowserSession,
   setBrowserSession } from "./emulator-sessions-storage";

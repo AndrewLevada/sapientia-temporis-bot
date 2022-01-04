@@ -1,12 +1,13 @@
-import { Context, Markup, Telegraf } from "telegraf";
+import { Markup } from "telegraf";
 import { decodeGroupFromUserInfo, groups, searchForTeacher } from "../services/groups-service";
 import { logUserPropChange } from "../services/analytics-service";
-import { getUserIdFromCtx, isTodaySunday, TextContext } from "../utils";
+import { isTodaySunday, TextContext } from "../utils";
 import { getUserInfo, setUserInfo } from "../services/user-service";
-import { sessions, resetUserSession, setUserSessionState } from "./env";
+import { resetUserSession, sessions, setUserSessionState } from "./env";
 import { replyWithTimetableForDelta } from "./timetable";
 import { defaultKeyboard } from "./general";
 import texts from "./texts";
+import { CustomContext, Telegraf } from "../app";
 
 const userSectionKeyboard = Markup.keyboard([["1", "2", "3", "4"], ["5", "6", "7", "8"], ["9", "10", "11"], ["Я преподаю"]]).resize();
 
@@ -61,7 +62,7 @@ function processGroupChange(ctx: TextContext, userId: string) {
   if (sessions[userId].type === "student") {
     group = sessions[userId].grade + group;
     if (groups[group]) {
-      logUserPropChange(getUserIdFromCtx(ctx as Context), "group", group);
+      logUserPropChange(ctx.userId, "group", group);
       setUserInfo(userId, {
         type: "student",
         group: groups[group],
@@ -75,7 +76,7 @@ function processGroupChange(ctx: TextContext, userId: string) {
   } else if (sessions[userId].type === "teacher") {
     const t = searchForTeacher(group);
     if (t) {
-      logUserPropChange(getUserIdFromCtx(ctx as Context), "group", t.fullName);
+      logUserPropChange(ctx.userId, "group", t.fullName);
       setUserInfo(userId, {
         type: "teacher",
         group: t.code,
@@ -89,14 +90,13 @@ function processGroupChange(ctx: TextContext, userId: string) {
   }
 }
 
-export function changeUserInfo(ctx: Context): void {
-  const userId: string = getUserIdFromCtx(ctx);
-  getUserInfo(userId).then(userInfo => {
+export function changeUserInfo(ctx: CustomContext): void {
+  getUserInfo(ctx.userId).then(userInfo => {
     if (userInfo && userInfo.isLimitedInGroupChange === true)
       ctx.reply(`Оу! Вы изменили группу расписания слишком много раз. Теперь она зафиксирована как ${decodeGroupFromUserInfo(userInfo)}`).then();
     else {
       ctx.reply("В каком классе вы учитесь?", userSectionKeyboard).then();
-      setUserSessionState(userId, "section-change");
+      setUserSessionState(ctx.userId, "section-change");
     }
   });
 }

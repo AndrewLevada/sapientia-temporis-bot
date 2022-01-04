@@ -1,4 +1,4 @@
-import { Context, Markup, Telegraf } from "telegraf";
+import { Markup } from "telegraf";
 import { CallbackQuery } from "typegram/callback";
 import { groups } from "../services/groups-service";
 import { BroadcastGroup, BroadcastGroupType, broadcastMessage } from "../services/broadcast-service";
@@ -6,8 +6,8 @@ import { adminUsername } from "../env";
 import { logEvent } from "../services/analytics-service";
 import texts from "./texts";
 import { getExchangeNotificationsReport, getStudentsReport, getTeachersReport } from "../services/reports-service";
-
-type TextContext = Context & { message: { text: string } };
+import { CustomContext, Telegraf } from "../app";
+import { TextContext } from "../utils";
 
 type BroadcastStatus = "none" | "group" | "message" | "confirmation";
 const broadcastState: {
@@ -111,7 +111,7 @@ function processBroadcastConfirmation(bot: Telegraf, ctx: TextContext) {
   } else cancelBroadcast(ctx);
 }
 
-function cancelBroadcast(ctx: Context) {
+function cancelBroadcast(ctx: CustomContext) {
   broadcastState.status = "none";
   broadcastState.group = null;
   broadcastState.text = null;
