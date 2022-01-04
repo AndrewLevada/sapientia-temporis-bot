@@ -5,7 +5,6 @@ import { getUserInfo, setUserInfo, UserInfo } from "../services/user-service";
 import { DateTimetable, getTimetable, getTimetableForDelta } from "../services/timetable-service";
 import { changeUserInfo } from "./user-info-change";
 import { defaultKeyboard } from "./general";
-import { resetUserSession } from "./env";
 import { inverseGroups, inverseTeachers } from "../services/groups-service";
 import texts from "./texts";
 import { CustomContext, Telegraf } from "../app";
@@ -25,7 +24,7 @@ export function bindTimetable(bot: Telegraf) {
 export function replyWithTimetableForDelta(ctx: CustomContext, dayDelta: number) {
   if (!ctx.message) return;
 
-  resetUserSession(ctx.userId);
+  ctx.setSessionState("normal");
   getUserInfo(ctx.userId).then(info => {
     if (!info || !info.type || !info.group) {
       ctx.reply(texts.res.timetable.updateRequired).then(() => changeUserInfo(ctx));
@@ -44,7 +43,7 @@ export function replyWithTimetableForDelta(ctx: CustomContext, dayDelta: number)
 export function replyWithTimetableForDay(ctx: CustomContext, day: number) {
   if (!ctx.message) return;
 
-  resetUserSession(ctx.userId);
+  ctx.setSessionState("normal");
   getUserInfo(ctx.userId).then(info => {
     if (!info || !info.type || !info.group) {
       ctx.reply(texts.res.timetable.updateRequired).then(() => changeUserInfo(ctx));

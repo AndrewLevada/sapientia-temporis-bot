@@ -1,7 +1,6 @@
 import { Markup } from "telegraf";
 import texts from "./texts";
 import { logPageView, logUserPropChange } from "../services/analytics-service";
-import { sessions, setUserSessionState } from "./env";
 import { setUserInfo } from "../services/user-service";
 import { settingsKeyboard } from "./general";
 import { CustomContext, Telegraf } from "../app";
@@ -14,12 +13,12 @@ export const onOffKeyboard = Markup.keyboard([
 export function bindExchangeNotifications(bot: Telegraf) {
   bot.hears(texts.keys.settings.scheduledNotifications, ctx => {
     logPageView(ctx, "/exchange_notifications");
-    setUserSessionState(ctx.userId, "exchange-notifications");
+    ctx.setSessionState("exchange-notifications");
     ctx.reply(texts.res.exchangeNotifications.intro, onOffKeyboard);
   });
 
   bot.on("text", (ctx, next) => {
-    if (!sessions[ctx.userId] || sessions[ctx.userId].state !== "exchange-notifications") {
+    if (ctx.getSessionState() !== "exchange-notifications") {
       next();
       return;
     }

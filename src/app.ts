@@ -21,8 +21,19 @@ import { initDatabase } from "./services/db";
 import { initTimetableService } from "./services/timetable-service";
 import { initExchangeNotificationsService } from "./services/exchange-notifications-service";
 
+type SessionState = "section-change" | "group-change" | "normal" | "feedback" | "exchange-notifications";
+const sessionsStorage: Record<string, SessionState> = {};
 export class CustomContext extends Context {
-  userId!: string;
+  public userId!: string;
+
+  public getSessionState(): SessionState {
+    return sessionsStorage[this.userId] || "normal";
+  }
+
+  public setSessionState(state: SessionState): void {
+    if (!sessionsStorage[this.userId]) sessionsStorage[this.userId] = state;
+    else sessionsStorage[this.userId] = state;
+  }
 }
 
 export type Telegraf = GenericTelegraf<CustomContext>;

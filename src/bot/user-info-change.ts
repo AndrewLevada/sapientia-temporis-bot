@@ -2,8 +2,7 @@ import { Markup } from "telegraf";
 import { decodeGroupFromUserInfo, groups, searchForTeacher } from "../services/groups-service";
 import { logUserPropChange } from "../services/analytics-service";
 import { isTodaySunday, TextContext } from "../utils";
-import { getUserInfo, setUserInfo } from "../services/user-service";
-import { resetUserSession, sessions, setUserSessionState } from "./env";
+import { getUserInfo, setUserInfo, UserType } from "../services/user-service";
 import { replyWithTimetableForDelta } from "./timetable";
 import { defaultKeyboard } from "./general";
 import texts from "./texts";
@@ -11,33 +10,35 @@ import { CustomContext, Telegraf } from "../app";
 
 const userSectionKeyboard = Markup.keyboard([["1", "2", "3", "4"], ["5", "6", "7", "8"], ["9", "10", "11"], ["Я преподаю"]]).resize();
 
+const tempInfoStorage: Record<string, {
+  type: UserType,
+  grade?: string,
+}> = {};
+
 export function bindUserInfoChange(bot: Telegraf): void {
   bot.hears(texts.keys.settings.changeGroup, ctx => changeUserInfo(ctx));
 
   bot.on("text", (ctx, next) => {
-    const userId: string = ctx.message.chat.id.toString();
-    if (!sessions[userId] || sessions[userId].state === "normal") next();
-    else if (sessions[userId].state === "section-change") processSectionChange(ctx, userId);
-    else if (sessions[userId].state === "group-change") processGroupChange(ctx, userId);
-    else next();
+    if (!["section-change", "group-change"].includes(ctx.getSessionState())) next();
+    else if (ctx.getSessionState() === "section-change") processSectionChange(ctx);
+    else if (ctx.getSessionState() === "group-change") processGroupChange(ctx);
   });
 }
 
-function processSectionChange(ctx: TextContext, userId: string) {
+function processSectionChange(ctx: TextContext) {
   const type = ctx.message.text.toLowerCase().trim();
 
   if (type === "я преподаю") {
-    sessions[userId].type = "teacher";
-    setUserSessionState(userId, "group-change");
+    tempInfoStorage[ctx.userId] = { type: "teacher" };
+    ctx.setSessionState("group-change");
     ctx.reply("Введите вашу фамилию", Markup.removeKeyboard()).then();
     return;
   }
 
   const typeAsNumber: number = parseInt(type);
   if (!Number.isNaN(typeAsNumber) && typeAsNumber > 0 && typeAsNumber <= 11) {
-    sessions[userId].type = "student";
-    sessions[userId].grade = type;
-    setUserSessionState(userId, "group-change");
+    tempInfoStorage[ctx.userId] = { type: "student", grade: type };
+    ctx.setSessionState("group-change");
     ctx.reply("Теперь уточни букву класса", Markup.keyboard(getLetteredKeyboardOfLength(lettersInGrades[typeAsNumber - 1])).resize()).then();
     return;
   }
@@ -56,33 +57,33 @@ function getLetteredKeyboardOfLength(n: number): string[][] {
   return [];
 }
 
-function processGroupChange(ctx: TextContext, userId: string) {
+function processGroupChange(ctx: TextContext) {
   let group = ctx.message.text.toLowerCase().trim();
 
-  if (sessions[userId].type === "student") {
-    group = sessions[userId].grade + group;
+  if (tempInfoStorage[ctx.userId].type === "student") {
+    group = tempInfoStorage[ctx.userId].grade + group;
     if (groups[group]) {
       logUserPropChange(ctx.userId, "group", group);
-      setUserInfo(userId, {
+      setUserInfo(ctx.userId, {
         type: "student",
         group: groups[group],
         name: ctx.from?.first_name,
       }).then(() => {
-        resetUserSession(userId);
+        ctx.setSessionState("normal");
         ctx.reply("Отлично! Вот твоё расписание:", defaultKeyboard)
           .then(() => replyWithTimetableForDelta(ctx, isTodaySunday() ? 1 : 0));
       });
     } else ctx.reply("Некорректный класс! Повтори ввод").then();
-  } else if (sessions[userId].type === "teacher") {
+  } else if (tempInfoStorage[ctx.userId].type === "teacher") {
     const t = searchForTeacher(group);
     if (t) {
       logUserPropChange(ctx.userId, "group", t.fullName);
-      setUserInfo(userId, {
+      setUserInfo(ctx.userId, {
         type: "teacher",
         group: t.code,
         name: ctx.from?.first_name,
       }).then(() => {
-        resetUserSession(userId);
+        ctx.setSessionState("normal");
         ctx.reply(`Отлично! Распознаю вас как ${t.fullName} Вот ваше расписание:`, defaultKeyboard)
           .then(() => replyWithTimetableForDelta(ctx, isTodaySunday() ? 1 : 0));
       });
@@ -96,7 +97,7 @@ export function changeUserInfo(ctx: CustomContext): void {
       ctx.reply(`Оу! Вы изменили группу расписания слишком много раз. Теперь она зафиксирована как ${decodeGroupFromUserInfo(userInfo)}`).then();
     else {
       ctx.reply("В каком классе вы учитесь?", userSectionKeyboard).then();
-      setUserSessionState(ctx.userId, "section-change");
+      ctx.setSessionState("section-change");
     }
   });
 }
