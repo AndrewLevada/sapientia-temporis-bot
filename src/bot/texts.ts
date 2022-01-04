@@ -7,14 +7,13 @@ export default {
       yesterday: "Вчера",
       tomorrow: "Завтра",
       weekDay: "На день недели",
-      more: "🆕 Дополнительно 🆕",
-      oldMore: "✨ Дополнительно ✨",
+      more: "Дополнительно",
+      oldMore: ["✨ Дополнительно ✨", "🆕 Дополнительно 🆕"],
     },
 
     settings: {
       back: "⬅️ Назад️",
-      scheduledNotifications: "🆕 Уведомлять об изменениях",
-      leaderboard: "⭐ Рейтинг классов️",
+      scheduledNotifications: "🔔 Уведомлять об изменениях",
       changeGroup: "⚙️ Изменить класс",
       feedback: "✉️ Обратная связь",
       adminSettings: "🛸 Admin Settings",

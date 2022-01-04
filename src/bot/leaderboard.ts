@@ -9,7 +9,7 @@ const leaderboardPlaces = ["🥇", "🥈", "🥉"];
 
 // eslint-disable-next-line import/prefer-default-export
 export function bindLeaderboard(bot: Telegraf) {
-  bot.hears(texts.keys.settings.leaderboard, ctx => replyWithGroupsTop(ctx));
+  bot.command("/leaderboard", ctx => replyWithGroupsTop(ctx));
 }
 
 function replyWithGroupsTop(ctx: CustomContext) {

@@ -15,7 +15,7 @@ export const settingsKeyboard = Markup.keyboard([
   [texts.keys.settings.back],
   [texts.keys.settings.changeGroup],
   [texts.keys.settings.scheduledNotifications],
-  [texts.keys.settings.feedback, texts.keys.settings.leaderboard],
+  [texts.keys.settings.feedback],
 ]).resize();
 
 export const adminSettingsKeyboard = Markup.keyboard([
@@ -38,7 +38,7 @@ export function bindGeneral(bot: Telegraf) {
     ctx.reply(texts.res.general.help);
   });
 
-  bot.command("/settings", ctx => replyWithSettings(ctx));
+  bot.command("/settings", ctx => ctx.reply(texts.res.general.settings, settingsKeyboard)); // For debug
   bot.hears(texts.keys.default.oldMore, ctx => replyWithSettings(ctx)); // Temp
   bot.hears(texts.keys.default.more, ctx => replyWithSettings(ctx));
   bot.hears(texts.keys.settings.back, ctx => ctx.reply("ОК", defaultKeyboard));
