@@ -1,7 +1,7 @@
 import { Context, Telegraf as GenericTelegraf } from "telegraf";
 import * as admin from "firebase-admin";
 import * as Sentry from "@sentry/node";
-import { CallbackQuery } from "typegram";
+import { CallbackQuery, Message } from "typegram";
 import telegrafThrottler from "telegraf-throttler";
 import Bottleneck from "bottleneck";
 import { initialFetchUsersTop } from "./services/user-service";
@@ -20,6 +20,7 @@ import { bindTimePicker } from "./bot/time-picker";
 import { initDatabase } from "./services/db";
 import { initTimetableService } from "./services/timetable-service";
 import { initExchangeNotificationsService } from "./services/exchange-notifications-service";
+import TextMessage = Message.TextMessage;
 
 type SessionState = "section-change" | "group-change" | "normal" | "feedback" | "exchange-notifications";
 const sessionsStorage: Record<string, SessionState> = {};
@@ -87,6 +88,7 @@ function bindBot(bot: Telegraf) {
     const userId = ctx.from!.id.toString();
     Sentry.setUser({ id: userId });
     ctx.userId = userId;
+    console.log(`user ${userId}: ${(ctx.message as TextMessage).text || (ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data || "message"}`);
     next().then();
   });
 
