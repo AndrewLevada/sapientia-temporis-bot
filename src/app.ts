@@ -88,7 +88,11 @@ function bindBot(bot: Telegraf) {
     const userId = ctx.from!.id.toString();
     Sentry.setUser({ id: userId });
     ctx.userId = userId;
-    console.log(`user ${userId}: ${(ctx.message as TextMessage).text || (ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data || "message"}`);
+
+    if (ctx.message) console.log(`message from ${userId}: ${(ctx.message as TextMessage).text}`);
+    else if (ctx.callbackQuery) console.log(`query from ${userId}: ${(ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data}`);
+    else console.log(`use from ${userId}`);
+
     next().then();
   });
 
