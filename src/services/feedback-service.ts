@@ -21,10 +21,10 @@ export function reportFeedback(bot: Telegraf, userId: string, firstName: string,
     const report: FeedbackReport = {
       userId,
       text,
-      userFirstName: firstName,
+      userFirstName: firstName || "?",
       userGroup: userInfo.type === "student" ? inverseGroups[userInfo.group] : inverseTeachers[userInfo.group],
       userType: userInfo.type,
-      userAlias: userInfo.username,
+      userAlias: userInfo.username || "?",
       timestamp: now.toString(),
     };
 
