@@ -62,6 +62,13 @@ export function queryTeacher(group: string): void {
   });
 }
 
+export function getAllUsers(): Promise<FullUserInfo[]> {
+  return usersRef.once("value")
+    .then(snap => snap.val())
+    .then(u => Object.entries<UserInfo>(u))
+    .then(u => u.map(v => ({ userId: v[0], ...v[1] } as FullUserInfo)));
+}
+
 function reportFullUserInfoList(users: FullUserInfo[]): void {
   console.log(`Total users: ${users.length}`);
   console.log("People:");
