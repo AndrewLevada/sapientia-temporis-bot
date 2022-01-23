@@ -228,7 +228,7 @@ function decorateLine(text: string, wasMutated?: boolean): string {
 function getStudentLessonText(lesson: StudentLesson | undefined, type: LessonType, i: number): string {
   if (!lesson) return `${getLessonNumber(type, i)}\\) Окно`;
 
-  const subject = sanitizeTextForMD(subjects[lesson.s[0]]) || "?";
+  const subject = sanitizeTextForMD(subjects[lesson.s[0] || lesson.s[1]]) || "?";
   const room = lesson.r ? rooms[lesson.r[0]] || "нет" : "нет";
   const roomMore = lesson.g ? ` и ${rooms[lesson.r[1]]}` : "";
   const timeArray = getLessonTimeArray(i, type);
