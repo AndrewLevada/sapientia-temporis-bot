@@ -1,11 +1,12 @@
 import axios from "axios";
-import { inverseGroups, isGroupUpper, isGroupWithPairs } from "./groups-service";
+import { isGroupUpper, isGroupWithPairs } from "./groups-service";
 import { UserInfo, UserType } from "./user-service";
 import { getDayOfWeekWithDelta, sanitizeTextForMD } from "../utils";
 import { db } from "./db";
 
-let subjects: any | null;
-let rooms: any | null;
+let subjects: Record<string, string> = {};
+let rooms: Record<string, string> = {};
+let decodeClass: Record<string, string> = {};
 
 const pairTimes: string[][] = [
   ["8:00", "9:30"],
@@ -60,8 +61,9 @@ export interface DateTimetable {
 }
 
 export function initTimetableService() {
-  db("timetable/subjects").on("value", snapshot => { subjects = snapshot.val(); });
-  db("timetable/rooms").on("value", snapshot => { rooms = snapshot.val(); });
+  db("timetable/subjects").on("value", snap => { subjects = snap.val(); });
+  db("timetable/rooms").on("value", snap => { rooms = snap.val(); });
+  db("timetable/classes").on("value", snap => { decodeClass = snap.val(); });
 }
 
 export function getTimetableForDelta(info: UserInfo, delta: number): Promise<DateTimetable> {
@@ -102,6 +104,8 @@ function updateHashedData(version: string): Promise<void> {
       db("timetable/exchange").set(correctExchangeDatesFormat(data.CLASS_EXCHANGE)),
       db("timetable/teacher_schedule").set(data.TEACH_SCHEDULE[period]),
       db("timetable/teacher_exchange").set(correctExchangeDatesFormat(data.TEACH_EXCHANGE)),
+      db("timetable/classes").set(data.CLASSES),
+      db("timetable/teachers").set(data.TEACHERS),
     ]).then();
   });
 }
@@ -228,9 +232,9 @@ function decorateLine(text: string, wasMutated?: boolean): string {
 function getStudentLessonText(lesson: StudentLesson | undefined, type: LessonType, i: number): string {
   if (!lesson) return `${getLessonNumber(type, i)}\\) Окно`;
 
-  const subject = sanitizeTextForMD(subjects[lesson.s[0] || lesson.s[1]]) || "?";
-  const room = lesson.r ? rooms[lesson.r[0]] || "нет" : "нет";
-  const roomMore = lesson.g ? ` и ${rooms[lesson.r[1]]}` : "";
+  const subject = sanitizeTextForMD(subjects![lesson.s[0] || lesson.s[1]]) || "?";
+  const room = lesson.r ? rooms![lesson.r[0]] || "нет" : "нет";
+  const roomMore = lesson.g ? ` и ${rooms![lesson.r[1]]}` : "";
   const timeArray = getLessonTimeArray(i, type);
 
   let text = `${getLessonNumber(type, i)}\\) ${subject}\n`;
@@ -243,9 +247,9 @@ function getTeacherLessonText(lesson: TeacherLesson | undefined, type: LessonTyp
   if (!lesson) return `${getLessonNumber(type, i)}\\) Окно`;
   if (lesson.s === "M") return `${getLessonNumber(type, i)}\\) Методический час`;
 
-  const subject = sanitizeTextForMD(subjects[lesson.s]) || "?";
-  const group = lesson.c ? inverseGroups[lesson.c[0]].toUpperCase() : "?";
-  const room = lesson.r ? rooms[lesson.r] || "нет" : "нет";
+  const subject = sanitizeTextForMD(subjects![lesson.s]) || "?";
+  const group = lesson.c ? decodeClass![lesson.c[0]].toUpperCase() : "?";
+  const room = lesson.r ? rooms![lesson.r] || "нет" : "нет";
   const timeArray = getLessonTimeArray(i, type);
 
   let text = `${getLessonNumber(type, i)}\\) *${group}* \\- ${subject}\n`;

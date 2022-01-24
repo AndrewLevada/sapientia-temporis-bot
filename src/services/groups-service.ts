@@ -1,6 +1,29 @@
-// noinspection NonAsciiCharacters
+import { UserInfo, UserType } from "./user-service";
+import { db } from "./db";
 
-import { UserInfo } from "./user-service";
+interface GroupMaps {
+  decode: Record<string, string>;
+  encode: Record<string, string>;
+}
+
+const classesMaps: GroupMaps = { encode: {}, decode: {} };
+const teachersMaps: GroupMaps = { encode: {}, decode: {} };
+
+export function initGroupsService() {
+  db("timetable/classes").on("value", snap => {
+    if (!snap.val()) return;
+    classesMaps.decode = snap.val();
+    classesMaps.encode = {};
+    Object.entries(classesMaps.decode).forEach(([code, name]) => { classesMaps.encode[name] = code; });
+  });
+
+  db("timetable/teachers").on("value", snap => {
+    if (!snap.val()) return;
+    teachersMaps.decode = snap.val();
+    teachersMaps.encode = {};
+    Object.entries(teachersMaps.decode).forEach(([code, name]) => { teachersMaps.encode[name] = code; });
+  });
+}
 
 export function isGroupWithPairs(group: string): boolean {
   // Only 10th and 11th
@@ -13,7 +36,7 @@ export function isGroupUpper(group: string): boolean {
 }
 
 export function searchForTeacher(s: string): { fullName: string; code: string; } | null {
-  const a = Object.entries(teachers);
+  const a = Object.entries(getGroupMap("encode", "teacher"));
   for (const t of a)
     if (t[0].toLowerCase().includes(s.toLowerCase()))
       return {
@@ -24,136 +47,21 @@ export function searchForTeacher(s: string): { fullName: string; code: string; }
   return null;
 }
 
-export function decodeGroupFromUserInfo(userInfo: UserInfo): string {
-  if (userInfo.type === "student") return inverseGroups[userInfo.group];
-  return inverseTeachers[userInfo.group];
+function getGroupMap(mapType: "decode" | "encode", userType: UserType): Record<string, string> {
+  return (userType === "student" ? classesMaps : teachersMaps)[mapType];
 }
 
-export const groups: Record<string, string> = {
-  "1а": "000",
-  "1б": "001",
-  "1в": "002",
-  "1г": "003",
-  "1д": "004",
-  "2а": "005",
-  "2б": "006",
-  "2в": "007",
-  "2г": "008",
-  "2д": "009",
-  "3а": "010",
-  "3б": "011",
-  "3в": "012",
-  "3г": "013",
-  "3д": "014",
-  "3е": "015",
-  "3ж": "016",
-  "4а": "017",
-  "4б": "018",
-  "4в": "019",
-  "4г": "020",
-  "4д": "021",
-  "4е": "022",
-  "5а": "023",
-  "5б": "024",
-  "5в": "025",
-  "5г": "026",
-  "5д": "027",
-  "6а": "028",
-  "6б": "029",
-  "6в": "030",
-  "6г": "031",
-  "7а": "032",
-  "7б": "033",
-  "7в": "034",
-  "7г": "035",
-  "8а": "036",
-  "8б": "037",
-  "8в": "038",
-  "9а": "039",
-  "9б": "040",
-  "9в": "041",
-  "10а": "042",
-  "10б": "043",
-  "10в": "044",
-  "10г": "045",
-  "10д": "046",
-  "11а": "047",
-  "11б": "048",
-  "11в": "049",
-  "11г": "050",
-  "11д": "051",
-};
+// Two methods below could be merged, but export should stay the same
 
-export const inverseGroups: Record<string, string> = {};
-Object.entries(groups).forEach(([name, code]) => { inverseGroups[code] = name; });
+export function decodeGroup(value: string | UserInfo, type?: UserType): string | undefined {
+  if (typeof value === "object") {
+    type = value.type;
+    value = value.group;
+  }
 
-export const teachers: Record<string, string> = {
-  "Архипова Е.А.": "000",
-  "Баранова М.В.": "001",
-  "Басенко Т.В.": "002",
-  "Бердникова Е.П.": "003",
-  "Блецка Д.И.": "058",
-  "Богданова М.Н.": "024",
-  "Боглаенко И.П.": "025",
-  "Бойченко И.В.": "053",
-  "Булкина Т.А.": "045",
-  "Бурмистрова К.Г.": "004",
-  "Владимирова А.А.": "015",
-  "Войтович А.В.": "044",
-  "Войтович Е.Н.": "026",
-  "Гришанова Н.Б.": "005",
-  "Ерашова Г.И.": "027",
-  "Желябина Н.А.": "028",
-  "Зайцева О.А.": "029",
-  "Заярская О.И.": "019",
-  "Изотова И.А": "054",
-  "Карапетян С.А.": "006",
-  "Киреева Е.Ю.": "018",
-  "Козачек С.Н.": "021",
-  "Колесникова А.А.": "047",
-  "Колесова И.В.": "020",
-  "Коржова О.С.": "016",
-  "Костенко М.В.": "022",
-  "Кравцова А.С.": "064",
-  "Крепак Е.И.": "007",
-  "Кучугурова С.С.": "008",
-  "Ладюкова А.В.": "038",
-  "Лемешева Н.А. ": "041",
-  "Мазниченко О.А.": "059",
-  "Макова Т.А.": "055",
-  "Манузина Л.Л.": "034",
-  "Матекина Э.И.": "009",
-  "Медведева И.В.": "060",
-  "Милица Е.Л.": "051",
-  "Молоканова О.П.": "010",
-  "Мугу С.А.": "030",
-  "Пакина Т.А.": "011",
-  "Панченко Л.В.": "048",
-  "Попова О.А.": "012",
-  "Рудов Э.Э.": "056",
-  "Рыбальченко А.С.": "013",
-  "Рындина Н.В.": "063",
-  "Седоченкова И.А.": "052",
-  "Седых А.В.": "050",
-  "Склярова О.В.": "042",
-  "Совык Э.В.": "039",
-  "Степанченко Н.А.": "017",
-  "Сысоева М.В.": "037",
-  "Тарасова А.А.": "061",
-  "Токмакова Н.Н.": "033",
-  "Толстено А.В.": "014",
-  "Томиленко Н.В.": "062",
-  "Тыняная Я.А.": "031",
-  "Филимонова Н.Н.": "035",
-  "Фокин А.Ю.": "032",
-  "Фролова Н.Н.": "036",
-  "Хаймина М.В.": "049",
-  "Хусточкин А.В.": "023",
-  "Черниченко Н.И.": "057",
-  "Чехова Л.В.": "046",
-  "Юдина А.Н.": "043",
-  "Ягодка Н.Е.": "040",
-};
+  return getGroupMap("decode", type!)[value];
+}
 
-export const inverseTeachers: Record<string, string> = {};
-Object.entries(teachers).forEach(([name, code]) => { inverseTeachers[code] = name; });
+export function encodeGroup(value: string, type: UserType): string | undefined {
+  return getGroupMap("encode", type)[value];
+}

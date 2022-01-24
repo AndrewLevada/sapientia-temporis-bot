@@ -1,5 +1,5 @@
 import { getUserInfo, UserType } from "./user-service";
-import { inverseGroups, inverseTeachers } from "./groups-service";
+import { decodeGroup } from "./groups-service";
 import { sendMessageToAdmin } from "./broadcast-service";
 import { db } from "./db";
 import { Telegraf } from "../app";
@@ -17,19 +17,21 @@ interface FeedbackReport {
 // eslint-disable-next-line import/prefer-default-export
 export function reportFeedback(bot: Telegraf, userId: string, firstName: string, text: string): Promise<void> {
   const now = new Date();
-  return getUserInfo(userId).then(userInfo => {
-    const report: FeedbackReport = {
-      userId,
-      text,
-      userFirstName: firstName || "?",
-      userGroup: userInfo.type === "student" ? inverseGroups[userInfo.group] : inverseTeachers[userInfo.group],
-      userType: userInfo.type,
-      userAlias: userInfo.username || "?",
-      timestamp: now.toString(),
-    };
+  return getUserInfo(userId)
+    .then(userInfo => {
+      const report: FeedbackReport = {
+        userId,
+        text,
+        userGroup: decodeGroup(userInfo) || "?",
+        userFirstName: firstName || "?",
+        userType: userInfo.type,
+        userAlias: userInfo.username || "?",
+        timestamp: now.toString(),
+      };
 
-    return Promise.all([recordFeedback(report), sendFeedbackToAdmin(bot, report)]).catch(e => console.log(e)).then();
-  });
+      return Promise.all([recordFeedback(report), sendFeedbackToAdmin(bot, report)])
+        .catch(e => console.log(e)).then();
+    });
 }
 
 function recordFeedback(report: FeedbackReport): Promise<void> {

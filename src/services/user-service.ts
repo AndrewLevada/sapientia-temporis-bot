@@ -1,5 +1,5 @@
 import { BroadcastGroup } from "./broadcast-service";
-import { groups, inverseGroups } from "./groups-service";
+import { decodeGroup, encodeGroup } from "./groups-service";
 import { db } from "./db";
 
 let top: Record<string, number> = {};
@@ -42,16 +42,17 @@ export function getUsersIdsByGroup(group: BroadcastGroup): Promise<string[]> {
       .then(v => Object.keys(v.val()));
   }
 
-  if (group.type === "grade") return db("users").orderByChild("type").equalTo("student").once("value")
-    .then(v => Object.entries(v.val())
-      .filter(o => inverseGroups[(o[1] as any).group]?.startsWith(group.value))
-      .map(o => o[0]));
+  if (group.type === "grade")
+    return db("users").orderByChild("type").equalTo("student").once("value")
+      .then(v => Object.entries(v.val())
+        .filter(o => decodeGroup((o[1] as any).group, "student")?.startsWith(group.value))
+        .map(o => o[0]));
 
   if (group.type === "userId") return Promise.resolve([group.value]);
   if (group.type === "userIdList") return Promise.resolve(group.value.split(","));
 
   return db("users").orderByChild("type").equalTo("student").once("value")
-    .then(v => Object.entries(v.val()).filter(o => (o[1] as any).group === groups[group.value]).map(o => o[0]));
+    .then(v => Object.entries(v.val()).filter(o => (o[1] as any).group === encodeGroup(group.value, "student")).map(o => o[0]));
 }
 
 export function getUsersCount(userType?: UserType): Promise<number> {

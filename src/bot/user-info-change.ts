@@ -1,5 +1,5 @@
 import { Markup } from "telegraf";
-import { decodeGroupFromUserInfo, groups, searchForTeacher } from "../services/groups-service";
+import { decodeGroup, encodeGroup, searchForTeacher } from "../services/groups-service";
 import { logUserPropChange } from "../services/analytics-service";
 import { isTodaySunday, TextContext } from "../utils";
 import { getUserInfo, setUserInfo, UserType } from "../services/user-service";
@@ -62,11 +62,11 @@ function processGroupChange(ctx: TextContext) {
 
   if (tempInfoStorage[ctx.userId].type === "student") {
     group = tempInfoStorage[ctx.userId].grade + group;
-    if (groups[group]) {
+    if (encodeGroup(group, "student")) {
       logUserPropChange(ctx.userId, "group", group);
       setUserInfo(ctx.userId, {
         type: "student",
-        group: groups[group],
+        group: encodeGroup(group, "student"),
         name: ctx.from?.first_name,
       }).then(() => {
         ctx.setSessionState("normal");
@@ -94,7 +94,7 @@ function processGroupChange(ctx: TextContext) {
 export function changeUserInfo(ctx: CustomContext): void {
   getUserInfo(ctx.userId).then(userInfo => {
     if (userInfo && userInfo.isLimitedInGroupChange === true)
-      ctx.reply(`Оу! Вы изменили группу расписания слишком много раз. Теперь она зафиксирована как ${decodeGroupFromUserInfo(userInfo)}`).then();
+      ctx.reply(`Оу! Вы изменили группу расписания слишком много раз. Теперь она зафиксирована как ${decodeGroup(userInfo)}`).then();
     else {
       ctx.reply("В каком классе вы учитесь?", userSectionKeyboard).then();
       ctx.setSessionState("section-change");

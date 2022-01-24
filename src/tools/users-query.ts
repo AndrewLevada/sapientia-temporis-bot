@@ -1,8 +1,8 @@
 import { database } from "firebase-admin";
 import { UserInfo } from "../services/user-service";
-import { decodeGroupInUserInfo } from "../utils";
 import Reference = database.Reference;
 import Database = database.Database;
+import { decodeGroup } from "../services/groups-service";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let usersRef!: Reference;
@@ -17,8 +17,11 @@ export interface FullUserInfo extends UserInfo {
 }
 
 export function queryUserData(userId: string): void {
-  usersRef.child(userId).once("value")
-    .then(snap => console.log(`${userId}: ${JSON.stringify(snap.val() ? decodeGroupInUserInfo(snap.val() as UserInfo) : "not found")}`));
+  usersRef.child(userId).once("value").then(snap => snap.val())
+    .then(userInfo => {
+      if (userInfo) console.log(`${userId}: ${JSON.stringify(decodeGroup(userInfo))}`);
+      else console.log(`${userId}: not-found`);
+    });
 }
 
 export function queryUsersData(usersIds: string[]): void {

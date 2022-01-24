@@ -5,7 +5,7 @@ import { getUserInfo, setUserInfo, UserInfo } from "../services/user-service";
 import { DateTimetable, getTimetable, getTimetableForDelta } from "../services/timetable-service";
 import { changeUserInfo } from "./user-info-change";
 import { defaultKeyboard } from "./general";
-import { inverseGroups, inverseTeachers } from "../services/groups-service";
+import { decodeGroup } from "../services/groups-service";
 import texts from "./texts";
 import { CustomContext, Telegraf } from "../app";
 
@@ -77,9 +77,5 @@ function collectAdditionalUserData(ctx: CustomContext, userInfo: UserInfo): void
   if (userInfo.name !== name) additionalInfo.name = name;
   if (userInfo.username !== ctx.from?.username) additionalInfo.username = ctx.from?.username;
   if (additionalInfo !== {}) setUserInfo(ctx.userId, additionalInfo).then();
-
-  logUserPropChange(ctx.userId,
-    "group",
-    userInfo.type === "student" ? inverseGroups[userInfo.group] : inverseTeachers[userInfo.group],
-    true);
+  logUserPropChange(ctx.userId, "group", decodeGroup(userInfo) || "?", true);
 }

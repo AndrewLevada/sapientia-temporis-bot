@@ -21,6 +21,7 @@ import { initDatabase } from "./services/db";
 import { initTimetableService } from "./services/timetable-service";
 import { initExchangeNotificationsService } from "./services/exchange-notifications-service";
 import TextMessage = Message.TextMessage;
+import { initGroupsService } from "./services/groups-service";
 
 type SessionState = "section-change" | "group-change" | "normal" | "feedback" | "exchange-notifications";
 const sessionsStorage: Record<string, SessionState> = {};
@@ -52,6 +53,7 @@ admin.initializeApp({
 
 initDatabase();
 initTimetableService();
+initGroupsService();
 startAnalyticsPageServer()
   .then(startAnalyticsBrowserEmulator)
   .then(initialFetchUsersTop)

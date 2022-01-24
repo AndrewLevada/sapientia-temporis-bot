@@ -2,7 +2,7 @@ import { getTeachersList,
   getUsersCount,
   getUsersLeaderboard,
   getUsersWithExchangeNotificationsOn } from "./user-service";
-import { inverseGroups, inverseTeachers } from "./groups-service";
+import { decodeGroup } from "./groups-service";
 
 export interface StudentsSection {
   label: string;
@@ -37,15 +37,14 @@ export function getStudentsReport(): Promise<string> {
   return Promise.all([getUsersCount(), getUsersCount("student")]).then(([usersCount, studentsCount]) => {
     let text = `Students report. Total count ${usersCount}/${studentsCount}\n\n`;
     text += sections.map((section, i) => `*️⃣ ${studentReportSections[i].label} \n${
-      section.map(v => `${inverseGroups[v[0]]} - ${v[1]}`).join("\n")
+      section.map(v => `${decodeGroup(v[0], "student")} - ${v[1]}`).join("\n")
     }`).join("\n\n");
     return text;
   });
 }
 
 export function getExchangeNotificationsReport(): Promise<string> {
-  return getUsersWithExchangeNotificationsOn()
-    .then(users => Object.values(users))
+  return getUsersWithExchangeNotificationsOn().then(users => Object.values(users))
     .then(users => {
       const students: Record<string, number> = {};
       const teachers: Record<string, number> = {};
@@ -57,13 +56,13 @@ export function getExchangeNotificationsReport(): Promise<string> {
       }
 
       let text = "*️⃣ Students\n";
-      text += Object.entries(students).map(v => `${inverseGroups[v[0]]} - ${v[1]}`).join("\n");
+      text += Object.entries(students).map(v => `${decodeGroup(v[0], "student")} - ${v[1]}`).join("\n");
       text += "\n\n*️⃣ Teachers\n";
-      text += Object.entries(teachers).map(v => `${inverseTeachers[v[0]]} - ${v[1]}`).join("\n");
+      text += Object.entries(teachers).map(v => `${decodeGroup(v[0], "teacher")} - ${v[1]}`).join("\n");
       return text;
     });
 }
 
 export function getTeachersReport(): Promise<string> {
-  return getTeachersList().then(l => l.map(v => inverseTeachers[v]).join("\n"));
+  return getTeachersList().then(l => l.map(v => decodeGroup(v, "teacher")).join("\n"));
 }

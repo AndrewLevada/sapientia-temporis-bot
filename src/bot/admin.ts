@@ -1,6 +1,6 @@
 import { Markup } from "telegraf";
 import { CallbackQuery } from "typegram/callback";
-import { groups } from "../services/groups-service";
+import { encodeGroup } from "../services/groups-service";
 import { BroadcastGroup, BroadcastGroupType, broadcastMessage } from "../services/broadcast-service";
 import { adminUsername } from "../env";
 import { logEvent } from "../services/analytics-service";
@@ -80,7 +80,7 @@ function processBroadcastGroup(ctx: TextContext) {
   else if (group.startsWith("[") && group.endsWith("]")) {
     groupType = "userIdList";
     group = group.substring(1, group.length - 1);
-  } else if (groups[group]) groupType = "group";
+  } else if (encodeGroup(group, "student")) groupType = "group";
 
   if (groupType) {
     broadcastState.status = "message";

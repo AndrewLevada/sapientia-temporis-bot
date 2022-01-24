@@ -5,7 +5,8 @@ import Reference = database.Reference;
 type Ref = "feedback" | "users" | "emulatorCookies" |
   "timetable/hashed_version" | "timetable/subjects" |
   "timetable/rooms" | "timetable/schedule" | "timetable/exchange" |
-  "timetable/teacher_schedule" | "timetable/teacher_exchange";
+  "timetable/teacher_schedule" | "timetable/teacher_exchange" |
+  "timetable/teachers" | "timetable/classes";
 let dbInstance!: Database;
 
 export function initDatabase() {

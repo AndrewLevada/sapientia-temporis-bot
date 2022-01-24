@@ -1,5 +1,3 @@
-import { UserInfo } from "./services/user-service";
-import { inverseGroups, inverseTeachers } from "./services/groups-service";
 import { CustomContext } from "./app";
 
 export const workWeekStrings = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
@@ -18,10 +16,6 @@ export function dateToSimpleString(date: Date): string {
 
 export function isTodaySunday(): boolean {
   return new Date().getDay() === 0;
-}
-
-export function decodeGroupInUserInfo(userInfo: UserInfo): UserInfo {
-  return { ...userInfo, group: userInfo.type === "student" ? inverseGroups[userInfo.group] : inverseTeachers[userInfo.group] };
 }
 
 export type TextContext = CustomContext & { message: { text: string } };
