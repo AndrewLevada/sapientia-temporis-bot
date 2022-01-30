@@ -23,10 +23,16 @@ export function setUserInfo(userId: string, info: Partial<UserInfo>): Promise<vo
 
   return userRef.once("value").then(snap => {
     const oldInfo: UserInfo = snap.val();
+
+    // User was not in db => this is a new user
+    if (!oldInfo) info.doNotifyAboutExchanges = true;
+
+    // If pushed change affects group update top map (for leaderboard optimization)
     if (info.group) {
       if (oldInfo && oldInfo.group && oldInfo.type === "student") removeUserSnapFromTop(oldInfo.group);
       if (info.type === "student") addUserSnapToTop(info.group);
     }
+
     return userRef.set({ ...oldInfo, ...info });
   });
 }
