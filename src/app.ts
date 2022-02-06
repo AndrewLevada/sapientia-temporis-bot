@@ -22,6 +22,7 @@ import { initTimetableService } from "./services/timetable-service";
 import { initExchangeNotificationsService } from "./services/exchange-notifications-service";
 import TextMessage = Message.TextMessage;
 import { initGroupsService } from "./services/groups-service";
+import texts from "./bot/texts";
 
 type SessionState = "section-change" | "group-change" | "normal" | "feedback" | "exchange-notifications";
 const sessionsStorage: Record<string, SessionState> = {};
@@ -109,7 +110,7 @@ function bindBot(bot: Telegraf) {
 
   bot.on("text", ctx => {
     logEvent(ctx, "unrecognized", { text: ctx.message.text });
-    ctx.reply("Для получения информации /help", defaultKeyboard);
+    ctx.reply(texts.res.general.unrecognised, defaultKeyboard);
   });
 
   bot.on("callback_query", ctx => {
