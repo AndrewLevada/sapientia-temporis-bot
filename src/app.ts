@@ -15,7 +15,6 @@ import { startAnalyticsPageServer } from "./services/analytics-emulator/server";
 import { startAnalyticsBrowserEmulator } from "./services/analytics-emulator/browser-emulator";
 import { logEvent } from "./services/analytics-service";
 import "@sentry/tracing";
-import { bindExchangeNotifications } from "./bot/exchange-notifications";
 import { bindTimePicker } from "./bot/time-picker";
 import { initDatabase } from "./services/db";
 import { initTimetableService } from "./services/timetable-service";
@@ -23,8 +22,9 @@ import { initExchangeNotificationsService } from "./services/exchange-notificati
 import TextMessage = Message.TextMessage;
 import { initGroupsService } from "./services/groups-service";
 import texts from "./bot/texts";
+import { bindNotifications } from "./bot/notifications";
 
-type SessionState = "section-change" | "group-change" | "normal" | "feedback" | "exchange-notifications";
+type SessionState = "section-change" | "group-change" | "normal" | "feedback" | "notifications" | "settings";
 const sessionsStorage: Record<string, SessionState> = {};
 export class CustomContext extends Context {
   public userId!: string;
@@ -105,7 +105,7 @@ function bindBot(bot: Telegraf) {
   bindLeaderboard(bot);
   bindFeedback(bot);
   bindTimePicker(bot);
-  bindExchangeNotifications(bot);
+  bindNotifications(bot);
   bindAdmin(bot);
 
   bot.on("text", ctx => {

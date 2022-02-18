@@ -35,7 +35,7 @@ export function logAdminEvent(name: string, params?: Record<string, any>): void 
   emulateSendEvent({ userId: "admin", name, params }).then();
 }
 
-export type UserProperty = "group" | "exchange_notifications";
+export type UserProperty = "group" | "notifications" | "notifications_time";
 
 // eslint-disable-next-line max-len
 export function logUserPropChange(userId: string, property: UserProperty, value: string | boolean, onlyChangeProperty?: boolean): void {

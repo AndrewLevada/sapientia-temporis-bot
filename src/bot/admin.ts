@@ -17,7 +17,7 @@ const broadcastState: {
 } = { status: "none", group: null, text: null };
 
 export const adminKeyboard = Markup.keyboard([
-  [texts.keys.settings.back],
+  [texts.keys.general.back],
   ["/broadcast"],
   ["/students_report"],
   ["/teachers_report", "/exchange_notifications_report"],

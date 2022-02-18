@@ -32,6 +32,7 @@ export function startAnalyticsPageServer(): Promise<void> {
 const titlesMap: Record<string, string> = {
   "/start_command": "Добро пожаловать",
   "/help_command": "Помощь",
+  "/default": "Главный экран",
   "/settings": "Настройки",
   "/leaderboard_view": "Лидерборд",
   "/timetable_view": "Расписание",
@@ -40,6 +41,7 @@ const titlesMap: Record<string, string> = {
   "/broadcast_response": "Ответ на трансляцию",
   "/feedback_open": "Обратная связь",
   "/feedback_send": "Отправка обратной связи",
-  "/exchange_notifications": "Уведоиления о заменах",
-  "/exchange_notifications_change": "Изменение уведомления о заменах",
+  "/notifications": "Уведоиления о заменах",
+  "/notifications_change": "Изменение уведомления о заменах",
+  "/notifications_time_change": "Изменение времени уведомлений",
 };

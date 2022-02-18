@@ -11,6 +11,7 @@ export interface UserInfo {
   username?: string;
   isLimitedInGroupChange?: boolean;
   doNotifyAboutExchanges?: boolean;
+  notificationsTime?: string;
 }
 
 export type UserType = "student" | "teacher";
