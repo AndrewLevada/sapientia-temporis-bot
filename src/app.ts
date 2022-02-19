@@ -24,7 +24,7 @@ import { initGroupsService } from "./services/groups-service";
 import texts from "./bot/texts";
 import { bindNotifications } from "./bot/notifications";
 
-type SessionState = "section-change" | "group-change" | "normal" | "feedback" | "notifications" | "settings";
+type SessionState = "section-change" | "group-change" | "normal" | "feedback" | "notifications" | "settings" | "notifications_time";
 const sessionsStorage: Record<string, SessionState> = {};
 export class CustomContext extends Context {
   public userId!: string;
