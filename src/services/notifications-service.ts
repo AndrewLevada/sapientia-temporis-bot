@@ -6,7 +6,7 @@ import { logAdminEvent } from "./analytics-service";
 import { Telegraf } from "../app";
 
 // eslint-disable-next-line import/prefer-default-export
-export function initExchangeNotificationsService(bot: Telegraf): void {
+export function initNotificationsService(bot: Telegraf): void {
   if (process.env.NODE_ENV === "development") return;
   schedule.scheduleJob("0 15 * * *", () => sendAllExchangeNotifications(bot)); // Shift by -3 hours because server is at UTC
 }

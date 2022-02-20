@@ -18,11 +18,11 @@ import "@sentry/tracing";
 import { bindTimePicker } from "./bot/time-picker";
 import { initDatabase } from "./services/db";
 import { initTimetableService } from "./services/timetable-service";
-import { initExchangeNotificationsService } from "./services/exchange-notifications-service";
 import TextMessage = Message.TextMessage;
 import { initGroupsService } from "./services/groups-service";
 import texts from "./bot/texts";
 import { bindNotifications } from "./bot/notifications";
+import { initNotificationsService } from "./services/notifications-service";
 
 type SessionState = "section-change" | "group-change" | "normal" | "feedback" | "notifications" | "settings" | "notifications_time";
 const sessionsStorage: Record<string, SessionState> = {};
@@ -59,7 +59,7 @@ startAnalyticsPageServer()
   .then(startAnalyticsBrowserEmulator)
   .then(initialFetchUsersTop)
   .then(startBot)
-  .then(bot => initExchangeNotificationsService(bot));
+  .then(bot => initNotificationsService(bot));
 
 function startBot(): Promise<Telegraf> {
   const bot = new GenericTelegraf(process.env.API_KEY as string, { contextType: CustomContext });

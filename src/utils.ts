@@ -18,6 +18,10 @@ export function isTodaySunday(): boolean {
   return new Date().getDay() === 0;
 }
 
+export const getDefaultDict = <T>(defaultValue: T) => new Proxy({} as Record<string, T>, {
+  get: (target, name: string) => (name in target ? target[name] : defaultValue),
+});
+
 export type TextContext = CustomContext & { message: { text: string } };
 
 export function sanitizeTextForMD(text: string): string {

@@ -1,11 +1,11 @@
 import { Markup } from "telegraf";
 import texts from "./texts";
-import { logPageView } from "../services/analytics-service";
+import { logPageView, logUserPropChange } from "../services/analytics-service";
 import { getUserInfo, setUserInfo } from "../services/user-service";
 import { Telegraf } from "../app";
 import { getSettingsKeyboard } from "./general";
 import { sanitizeTextForMD } from "../utils";
-import { getTimePickerKeyboard } from "./time-picker";
+import { getTimePickerKeyboard, userClocksStorage } from "./time-picker";
 
 const defaultNotificationTime = "18:00";
 
@@ -39,6 +39,18 @@ export function bindNotifications(bot: Telegraf) {
         .then(() => ctx.reply("Когда выберите время, нажмите 'Готово'", Markup.keyboard([[texts.keys.notifications.timeSave]]).resize()));
       ctx.setSessionState("notifications_time");
     }));
+
+  bot.on("text", (ctx, next) => {
+    if (ctx.getSessionState() !== "notifications_time") next();
+    else {
+      const time = userClocksStorage[ctx.userId] || defaultNotificationTime;
+      setUserInfo(ctx.userId, { notificationsTime: time }).then();
+      ctx.replyWithMarkdownV2(`${sanitizeTextForMD(texts.res.notifications.timeSave)} *${time}*`, notificationsKeyboard);
+      ctx.setSessionState("notifications");
+      logPageView(ctx, "/notifications");
+      logUserPropChange(ctx.userId, "notifications_time", time);
+    }
+  });
 
   bot.hears(texts.keys.notifications.disable, ctx => {
     setUserInfo(ctx.userId, { doNotifyAboutExchanges: false, notificationsTime: defaultNotificationTime }).then(() => {

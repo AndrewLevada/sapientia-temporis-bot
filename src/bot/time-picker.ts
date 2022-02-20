@@ -1,12 +1,14 @@
 import { Markup } from "telegraf";
 import { CallbackQuery } from "typegram/callback";
-import { Telegraf } from "../app";
+import { CustomContext, Telegraf } from "../app";
 
 const minutesCycle = ["00", "15", "30", "45"];
 const hoursCycle = [
   "00", "01", "02", "03", "04", "05", "06", "07", "08", "09",
   "10", "11", "12", "13", "14", "15", "16", "17", "18", "19",
   "20", "21", "22", "23"];
+
+export const userClocksStorage: Record<string, string> = {};
 
 export function getTimePickerKeyboard(time: string[]) {
   return Markup.inlineKeyboard([
@@ -34,8 +36,10 @@ export function bindTimePicker(bot: Telegraf) {
   });
 }
 
-function adjustTimePickerKeyboard(ctx: any, action: string): ReturnType<typeof Markup.inlineKeyboard> {
-  return getTimePickerKeyboard(action.split("--set-")[1].split("-"));
+function adjustTimePickerKeyboard(ctx: CustomContext, action: string): ReturnType<typeof Markup.inlineKeyboard> {
+  const time = action.split("--set-")[1].split("-");
+  userClocksStorage[ctx.userId] = time.join(":");
+  return getTimePickerKeyboard(time);
 }
 
 function cycleFromArray<T>(arr: T[], item: T, delta: number): T {
