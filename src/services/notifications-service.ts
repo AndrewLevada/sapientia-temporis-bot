@@ -5,14 +5,14 @@ import { getFullUserInfo,
   setUserInfo } from "./user-service";
 import { getTimetableForDelta } from "./timetable-service";
 import { broadcastMessage, sendMessageToAdmin } from "./broadcast-service";
-import { logAdminEvent } from "./analytics-service";
 import { Telegraf } from "../app";
 import { db } from "./db";
+import { defaultNotificationTime } from "../bot/notifications";
 
 // eslint-disable-next-line import/prefer-default-export
 export function initNotificationsService(bot: Telegraf): void {
   if (process.env.NODE_ENV === "development") return;
-  schedule.scheduleJob({ minute: [0, 15, 30, 45] },
+  schedule.scheduleJob({ minute: [0, 15, 30, 45], tz: "Europe/Moscow" },
     fireTime => sendNotifications(bot, `${timeToString(fireTime.getHours())}:${timeToString(fireTime.getMinutes())}`));
 }
 
@@ -22,32 +22,44 @@ function timeToString(v: number): string {
   return v.toString();
 }
 
-export function setUserNotificationTime(userId: string, newTime: string): Promise<void> {
+export function setUserNotificationTime(userId: string, newTime: string | null): Promise<void> {
   return getUserInfo(userId).then(userInfo => (userInfo.notificationsTime
     ? db("notifications_heap").child(`${userInfo.notificationsTime}/${userId}`).remove()
     : Promise.resolve())
-    .then(() => db("notifications_heap").child(`${newTime}/${userId}`).set(true))
-    .then(() => setUserInfo(userId, { notificationsTime: newTime })));
+    .then(() => {
+      // eslint-disable-next-line max-len
+      if (!newTime) return setUserInfo(userId, { doNotifyAboutExchanges: false, notificationsTime: defaultNotificationTime });
+      return db("notifications_heap").child(`${newTime}/${userId}`).set(true)
+        .then(() => setUserInfo(userId, { doNotifyAboutExchanges: true, notificationsTime: newTime }));
+    }));
 }
 
 function sendNotifications(bot: Telegraf, time: string): void {
   let mutatedNum = 0;
-  console.log(`Sending timed notifications (at ${time})`);
   getUsersFromTimeHeap(time)
     .then(userIds => Promise.all(userIds.map(userId => getFullUserInfo(userId))))
-    .then(users => Promise.all(users.map<Promise<void>>(user => getTimetableForDelta(user, 1).then(({ wasMutated }) => {
-      if (wasMutated) {
-        mutatedNum++;
-        return broadcastMessage(bot, { type: "userId", value: user.userId }, "Проверьте расписание, завтра у вас замена!", false, true).then();
-      }
-      return Promise.resolve();
-    }))).then(() => getUsersCount()).then(totalUsers => {
-      if (mutatedNum !== 0) logAdminEvent("broadcast", { text: "Уведомления о заменах" });
-      return sendMessageToAdmin(bot, `Отправка уведомлений о заменах окончена. Статус: ${totalUsers}/${users.length}/${mutatedNum}`);
-    }));
+    .then(users => {
+      if (users.length === 0) return;
+      Promise.all(users.map<Promise<void>>(user => getTimetableForDelta(user, getDeltaFromTime(time))
+        .then(({ wasMutated }) => {
+          if (wasMutated) {
+            mutatedNum++;
+            return broadcastMessage(bot, { type: "userId", value: user.userId }, "Проверьте расписание, у вас замена!", false, true).then();
+          }
+          return Promise.resolve();
+        }))).then(() => getUsersCount()).then(totalUsers => {
+        console.log(`Sent timed notifications (at ${time}) with ${totalUsers}/${users.length}/${mutatedNum}`);
+        if (mutatedNum === 0) return;
+        sendMessageToAdmin(bot, `Отправка уведомлений о заменах на ${time}. Статус: ${totalUsers}/${users.length}/${mutatedNum}`).then();
+      });
+    });
 }
 
 function getUsersFromTimeHeap(time: string): Promise<string[]> {
   return db("notifications_heap").child(time).once("value")
     .then(snap => (snap.val() ? Object.keys(snap.val()) : []));
+}
+
+function getDeltaFromTime(time: string): number {
+  return Number.parseInt(time.split(":")[0]) >= 12 ? 1 : 0;
 }

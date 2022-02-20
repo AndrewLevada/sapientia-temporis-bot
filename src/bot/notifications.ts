@@ -1,14 +1,14 @@
 import { Markup } from "telegraf";
 import texts from "./texts";
 import { logPageView, logUserPropChange } from "../services/analytics-service";
-import { getUserInfo, setUserInfo } from "../services/user-service";
+import { getUserInfo } from "../services/user-service";
 import { Telegraf } from "../app";
 import { getSettingsKeyboard } from "./general";
 import { sanitizeTextForMD } from "../utils";
 import { getTimePickerKeyboard, userClocksStorage } from "./time-picker";
 import { setUserNotificationTime } from "../services/notifications-service";
 
-const defaultNotificationTime = "18:00";
+export const defaultNotificationTime = "18:00";
 
 const notificationsKeyboard = Markup.keyboard([
   [texts.keys.general.back],
@@ -19,8 +19,8 @@ const notificationsKeyboard = Markup.keyboard([
 // eslint-disable-next-line import/prefer-default-export
 export function bindNotifications(bot: Telegraf) {
   bot.hears(texts.keys.settings.enableNotifications, ctx => {
-    setUserInfo(ctx.userId, { doNotifyAboutExchanges: true, notificationsTime: defaultNotificationTime }).then(() => {
-      ctx.reply(texts.res.notifications.enabled, notificationsKeyboard);
+    setUserNotificationTime(ctx.userId, defaultNotificationTime).then(() => {
+      ctx.replyWithMarkdownV2(`${sanitizeTextForMD(texts.res.notifications.info)} *${defaultNotificationTime}*`, notificationsKeyboard);
       ctx.setSessionState("notifications");
       logPageView(ctx, "/notifications");
     });
@@ -55,7 +55,7 @@ export function bindNotifications(bot: Telegraf) {
   });
 
   bot.hears(texts.keys.notifications.disable, ctx => {
-    setUserInfo(ctx.userId, { doNotifyAboutExchanges: false, notificationsTime: defaultNotificationTime }).then(() => {
+    setUserNotificationTime(ctx.userId, null).then(() => {
       getSettingsKeyboard(ctx).then(keyboard => ctx.reply(texts.res.notifications.disable, keyboard));
       ctx.setSessionState("settings");
       logPageView(ctx, "/settings");
