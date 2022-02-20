@@ -14,6 +14,10 @@ export interface UserInfo {
   notificationsTime?: string;
 }
 
+export interface FullUserInfo extends UserInfo {
+  userId: string;
+}
+
 export type UserType = "student" | "teacher";
 
 export function setUserInfo(userId: string, info: Partial<UserInfo>): Promise<void> {
@@ -40,6 +44,10 @@ export function setUserInfo(userId: string, info: Partial<UserInfo>): Promise<vo
 
 export function getUserInfo(userId: string): Promise<UserInfo> {
   return db("users").child(`${userId}`).get().then(snapshot => snapshot.val());
+}
+
+export function getFullUserInfo(userId: string): Promise<FullUserInfo> {
+  return db("users").child(`${userId}`).get().then(snapshot => ({ userId, ...snapshot.val() }));
 }
 
 export function getUsersIdsByGroup(group: BroadcastGroup): Promise<string[]> {

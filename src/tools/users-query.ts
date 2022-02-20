@@ -1,8 +1,8 @@
 import { database } from "firebase-admin";
-import { UserInfo } from "../services/user-service";
+import { FullUserInfo, UserInfo } from "../services/user-service";
+import { decodeGroup } from "../services/groups-service";
 import Reference = database.Reference;
 import Database = database.Database;
-import { decodeGroup } from "../services/groups-service";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let usersRef!: Reference;
@@ -10,10 +10,6 @@ export let usersRef!: Reference;
 export function init() {
   const db: Database = database();
   usersRef = db.ref("users");
-}
-
-export interface FullUserInfo extends UserInfo {
-  userId: string;
 }
 
 export function queryUserData(userId: string): void {

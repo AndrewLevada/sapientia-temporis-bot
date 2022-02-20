@@ -6,6 +6,7 @@ import { Telegraf } from "../app";
 import { getSettingsKeyboard } from "./general";
 import { sanitizeTextForMD } from "../utils";
 import { getTimePickerKeyboard, userClocksStorage } from "./time-picker";
+import { setUserNotificationTime } from "../services/notifications-service";
 
 const defaultNotificationTime = "18:00";
 
@@ -44,11 +45,12 @@ export function bindNotifications(bot: Telegraf) {
     if (ctx.getSessionState() !== "notifications_time") next();
     else {
       const time = userClocksStorage[ctx.userId] || defaultNotificationTime;
-      setUserInfo(ctx.userId, { notificationsTime: time }).then();
-      ctx.replyWithMarkdownV2(`${sanitizeTextForMD(texts.res.notifications.timeSave)} *${time}*`, notificationsKeyboard);
-      ctx.setSessionState("notifications");
-      logPageView(ctx, "/notifications");
-      logUserPropChange(ctx.userId, "notifications_time", time);
+      setUserNotificationTime(ctx.userId, time).then(() => {
+        ctx.replyWithMarkdownV2(`${sanitizeTextForMD(texts.res.notifications.timeSave)} *${time}*`, notificationsKeyboard);
+        ctx.setSessionState("notifications");
+        logPageView(ctx, "/notifications");
+        logUserPropChange(ctx.userId, "notifications_time", time);
+      });
     }
   });
 

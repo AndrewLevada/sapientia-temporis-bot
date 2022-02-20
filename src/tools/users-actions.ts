@@ -1,5 +1,5 @@
-import { UserInfo } from "../services/user-service";
-import { FullUserInfo, usersRef } from "./users-query";
+import { FullUserInfo, UserInfo } from "../services/user-service";
+import { usersRef } from "./users-query";
 
 // eslint-disable-next-line import/prefer-default-export
 export function removeUsersWithoutTypeField(): void {
