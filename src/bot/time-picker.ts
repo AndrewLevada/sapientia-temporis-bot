@@ -13,7 +13,7 @@ export const userClocksStorage: Record<string, string> = {};
 export function getTimePickerKeyboard(time: string[]) {
   return Markup.inlineKeyboard([
     getCycleButtons("up"),
-    [{ text: time[0], callback_data: "ignore" }, { text: time[1], callback_data: "ignore" }],
+    [{ text: time[0], callback_data: `ignore-${getRandomInt()}` }, { text: time[1], callback_data: `ignore-${getRandomInt()}` }],
     getCycleButtons("down"),
   ]);
 
@@ -49,4 +49,8 @@ function cycleFromArray<T>(arr: T[], item: T, delta: number): T {
   if (n === -1) return arr[arr.length - 1];
   if (n === arr.length) return arr[0];
   return arr[n];
+}
+
+function getRandomInt(): string {
+  return Math.floor(Math.random() * 9999999).toString();
 }

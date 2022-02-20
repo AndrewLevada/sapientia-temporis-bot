@@ -115,7 +115,7 @@ function bindBot(bot: Telegraf) {
 
   bot.on("callback_query", ctx => {
     const text = (ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data;
-    if (text !== "ignore") logEvent(ctx, "unrecognized", { text });
+    if (text.startsWith("ignore")) logEvent(ctx, "unrecognized", { text });
     ctx.answerCbQuery();
   });
 }
