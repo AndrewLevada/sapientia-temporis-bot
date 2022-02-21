@@ -7,6 +7,7 @@ import { db } from "./db";
 let subjects: Record<string, string> = {};
 let rooms: Record<string, string> = {};
 let decodeClass: Record<string, string> = {};
+let lastHashCheckTime: number = 0;
 
 const pairTimes: string[][] = [
   ["8:00", "9:30"],
@@ -78,6 +79,10 @@ export function getTimetable(info: UserInfo, date: Date): Promise<DateTimetable>
 }
 
 function validateHashedData(): Promise<void> {
+  // Skip checking if last checking occurred in the last 20s
+  if (new Date().valueOf() - lastHashCheckTime <= 1000 * 20) return Promise.resolve();
+  lastHashCheckTime = new Date().valueOf();
+
   return Promise.all([
     axios.get("http://raspisanie.nikasoft.ru/check/47307204.html").then(res => res.data as string),
     db("timetable/hashed_version").once("value").then(snap => snap.val() as string),
