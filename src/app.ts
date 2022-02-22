@@ -47,6 +47,8 @@ if (process.env.NODE_ENV !== "development") Sentry.init({
   integrations: [new Sentry.Integrations.Http({ tracing: true })],
 });
 
+process.env.TZ = "Europe/Moscow";
+
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(Buffer.from(process.env.FIREBASE_CONFIG as string, "base64").toString("ascii"))),
   databaseURL: process.env.FIREBASE_DATABASE_URL as string,
