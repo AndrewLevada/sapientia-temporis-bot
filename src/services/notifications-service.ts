@@ -57,7 +57,7 @@ function sendNotifications(bot: Telegraf, time: string): void {
 
 function getUsersFromTimeHeap(time: string): Promise<string[]> {
   return db("notifications_heap").child(time).once("value")
-    .then(snap => snap.val() || [])
+    .then(snap => (snap.val() ? Object.keys(snap.val()) : []))
     .then(heap => {
       if (time === defaultNotificationTime)
         return getUsersWithNotificationsOn().then(users => Object.entries(users)
