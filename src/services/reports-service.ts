@@ -1,7 +1,7 @@
 import { getTeachersList,
   getUsersCount,
   getUsersLeaderboard,
-  getUsersWithExchangeNotificationsOn } from "./user-service";
+  getUsersWithNotificationsOn } from "./user-service";
 import { decodeGroup } from "./groups-service";
 
 export interface StudentsSection {
@@ -44,7 +44,7 @@ export function getStudentsReport(): Promise<string> {
 }
 
 export function getExchangeNotificationsReport(): Promise<string> {
-  return getUsersWithExchangeNotificationsOn().then(users => Object.values(users))
+  return getUsersWithNotificationsOn().then(users => Object.values(users))
     .then(users => {
       const students: Record<string, number> = {};
       const teachers: Record<string, number> = {};
