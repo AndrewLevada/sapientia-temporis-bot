@@ -1,3 +1,4 @@
+/* eslint-disable function-call-argument-newline */
 import schedule from "node-schedule";
 import { getFullUserInfo,
   getUserInfo,
@@ -8,6 +9,7 @@ import { broadcastMessage, sendMessageToAdmin } from "./broadcast-service";
 import { Telegraf } from "../app";
 import { db } from "./db";
 import { defaultNotificationTime } from "../bot/notifications";
+import texts from "../bot/texts";
 
 // eslint-disable-next-line import/prefer-default-export
 export function initNotificationsService(bot: Telegraf): void {
@@ -44,13 +46,16 @@ function sendNotifications(bot: Telegraf, time: string): void {
         .then(({ wasMutated }) => {
           if (wasMutated) {
             mutatedNum++;
-            return broadcastMessage(bot, { type: "userId", value: user.userId }, "Проверьте расписание, у вас замена!", false, true).then();
+            return broadcastMessage(bot,
+              { type: "userId", value: user.userId },
+              texts.res.notifications.exchangeMessage[getDeltaFromTime(time) === 0 ? "today" : "tomorrow"], false, true).then();
           }
           return Promise.resolve();
         }))).then(() => getUsersCount()).then(totalUsers => {
         console.log(`Sent timed notifications (at ${time}) with ${totalUsers}/${users.length}/${mutatedNum}`);
         if (mutatedNum === 0) return;
-        sendMessageToAdmin(bot, `Отправка уведомлений о заменах на ${time}. Статус: ${totalUsers}/${users.length}/${mutatedNum}`).then();
+        sendMessageToAdmin(bot, texts.res.notifications.adminUpdate(time,
+          [totalUsers, users.length, mutatedNum])).then();
       });
     });
 }
