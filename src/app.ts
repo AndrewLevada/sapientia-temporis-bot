@@ -79,6 +79,10 @@ function startBot(): Promise<Telegraf> {
       reservoirRefreshAmount: 100,
       reservoirRefreshInterval: 2000,
     },
+    inThrottlerError: ctx => {
+      console.log(`Message from ${(ctx.from || ctx.chat)?.id} dropped by throttler.`);
+      return Promise.resolve();
+    },
   }));
 
   bindBot(bot);
