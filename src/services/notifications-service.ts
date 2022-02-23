@@ -1,7 +1,7 @@
 import schedule from "node-schedule";
 import { getFullUserInfo,
   getUserInfo,
-  getUsersCount,
+  getUsersCount, getUsersWithNotificationsOn,
   setUserInfo } from "./user-service";
 import { getTimetableForDelta } from "./timetable-service";
 import { broadcastMessage, sendMessageToAdmin } from "./broadcast-service";
@@ -57,7 +57,14 @@ function sendNotifications(bot: Telegraf, time: string): void {
 
 function getUsersFromTimeHeap(time: string): Promise<string[]> {
   return db("notifications_heap").child(time).once("value")
-    .then(snap => (snap.val() ? Object.keys(snap.val()) : []));
+    .then(snap => snap.val() || [])
+    .then(heap => {
+      if (time === defaultNotificationTime)
+        return getUsersWithNotificationsOn().then(users => Object.entries(users)
+          .filter(v => !v[1].notificationsTime)
+          .map(v => v[0]).concat(heap));
+      return heap;
+    });
 }
 
 function getDeltaFromTime(time: string): number {
