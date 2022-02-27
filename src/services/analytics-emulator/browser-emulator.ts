@@ -99,7 +99,14 @@ function loadPage(page: Page, e: PageViewEvent): Promise<void> {
       gtag("config", "G-HYFTVXK74M", { user_id: userId, transport_type: "beacon" });
       gtag("set", "user_properties", { crm_id: userId });
     }, e.userId))
-    .then(() => page.click("body"));
+    .then(() => page.click("body"))
+    .then(() => page.evaluate(() => new Promise(resolve => {
+      gtag("get", "G-HYFTVXK74M", "session_id", resolve);
+    })))
+    .then(d => {
+      if (debugLog) console.log(`session-id: ${d}`);
+      return Promise.resolve();
+    });
 }
 
 function shouldPageNavigate(e: PageViewEvent, page: Page): boolean {
