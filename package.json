@@ -8,10 +8,10 @@
     "url": "https://github.com/andrewlevada/sapientia-temporis-bot.git"
   },
   "scripts": {
-    "start": "tsc && cross-env NODE_ENV=production node build/app.js --enable-source-maps",
     "serve": "tsc && cross-env NODE_ENV=development node build/app.js --enable-source-maps",
     "tools": "cross-env NODE_ENV=tools ts-node tools/launch.ts",
-    "deploy": "tsc && gcloud app deploy --project=sapientia-temporis-bot"
+    "deploy": "tsc && gcloud app deploy --project=sapientia-temporis-bot",
+    "start": "cross-env NODE_ENV=production node build/app.js --enable-source-maps"
   },
   "dependencies": {
     "@sentry/node": "^6.18.1",
