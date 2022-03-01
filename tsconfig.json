@@ -1,4 +1,6 @@
 {
+  "include": [ "src/**/*" ],
+  "exclude": [ "node_modules", "tools", "build" ],
   "compilerOptions": {
   	/* Added */
     "forceConsistentCasingInFileNames": true, /* Disallow inconsistently-cased references to the same file. */
@@ -6,13 +8,11 @@
     "resolveJsonModule": true,                /* Include modules imported with '.json' extension. Requires TypeScript version 2.9 or later. */
 
     /* Basic Options */
-    "target": "es2018",
+    "target": "es2016",
     "module": "commonjs",                     /* Specify module code generation: 'none', 'commonjs', 'amd', 'system', 'umd', 'es2015', or 'ESNext'. */
     "declaration": true,                      /* Generates corresponding '.d.ts' file. */
     "sourceMap": true,                        /* Generates corresponding '.map' file. */
-    "outDir": "dist",                         /* Redirect output structure to the directory. */
-    "rootDir": "src",                         /* Specify the root directory of input files. Use to control the output directory structure with --outDir. */
-
+    "outDir": "build",                         /* Redirect output structure to the directory. */
 
     /* Strict Type-Checking Options */
     "strict": true,                           /* Enable all strict type-checking options. */
@@ -23,5 +23,4 @@
     "moduleResolution": "node",
     "esModuleInterop": true
   },
-  "exclude": [ "node_modules", "types", "dist" ]
 }

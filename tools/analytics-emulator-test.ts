@@ -1,5 +1,5 @@
-import { emulateSendEvent } from "../services/analytics-emulator/browser-emulator";
-import { getBrowserSession } from "../services/analytics-emulator/emulator-sessions-storage";
+import { emulateSendEvent } from "../src/services/analytics-emulator/browser-emulator";
+import { getBrowserSession } from "../src/services/analytics-emulator/emulator-sessions-storage";
 
 const firstStageLag = 6 * 1000;
 const secondStageLag = 10 * 1000;

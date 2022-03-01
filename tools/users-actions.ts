@@ -1,4 +1,4 @@
-import { FullUserInfo, UserInfo } from "../services/user-service";
+import { FullUserInfo, UserInfo } from "../src/services/user-service";
 import { usersRef } from "./users-query";
 
 // eslint-disable-next-line import/prefer-default-export

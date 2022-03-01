@@ -2,7 +2,7 @@
 import { Parser } from "json2csv";
 import { writeFileSync } from "fs";
 import { usersRef } from "./users-query";
-import { decodeGroup } from "../services/groups-service";
+import { decodeGroup } from "../src/services/groups-service";
 
 // eslint-disable-next-line import/prefer-default-export
 export function createCSVForInterview(usersIds: string[]): void {

@@ -64,7 +64,7 @@ startAnalyticsPageServer()
   .then(bot => initNotificationsService(bot));
 
 function startBot(): Promise<Telegraf> {
-  const bot = new GenericTelegraf(process.env.API_KEY as string, { contextType: CustomContext });
+  const bot = new GenericTelegraf(process.env.TELEGRAM_API_KEY as string, { contextType: CustomContext });
 
   bot.use(telegrafThrottler({
     in: {

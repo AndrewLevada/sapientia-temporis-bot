@@ -1,5 +1,5 @@
 # Generated directories:
-dist/
+build/
 node_modules/
 
 # Project files:
@@ -7,3 +7,4 @@ node_modules/
 .idea
 
 serviceAccountKey.json
+env_variables.yaml

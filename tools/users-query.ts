@@ -1,6 +1,6 @@
 import { database } from "firebase-admin";
-import { FullUserInfo, UserInfo } from "../services/user-service";
-import { decodeGroup } from "../services/groups-service";
+import { FullUserInfo, UserInfo } from "../src/services/user-service";
+import { decodeGroup } from "../src/services/groups-service";
 import Reference = database.Reference;
 import Database = database.Database;
 
