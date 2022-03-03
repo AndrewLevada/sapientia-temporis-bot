@@ -2,7 +2,7 @@ import { emulatePageView, emulateSendEvent, emulateUserPropertiesUpdate } from "
 import { adminUserId } from "../env";
 import { CustomContext } from "../app";
 
-const doIgnoreAdmin = true;
+const doIgnoreAdmin = false;
 
 export interface PageViewEvent {
   userId: string;

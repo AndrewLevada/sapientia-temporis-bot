@@ -1,16 +1,18 @@
-import { BrowserContext, Page } from "puppeteer";
+import { DOMWindow } from "jsdom";
 import { PageViewEvent } from "../analytics-service";
+
+export type GtagFunction = (action: string, value: string, params?: any, callback?: ()=> void)=> void;
 
 interface EmulatedSession {
   state: "idle" | "updating" | "finishing";
-  context?: BrowserContext;
-  page?: Page;
+  window?: DOMWindow;
+  gtag?: GtagFunction;
   timeout: ReturnType<typeof setTimeout> | null;
 }
 
 interface QueuedEmulationRequest {
   event: PageViewEvent;
-  callback?: (page: Page)=> Promise<void>;
+  callback?: (gtag: GtagFunction)=> Promise<void>;
 }
 
 const sessions: Record<string, EmulatedSession> = {};

@@ -11,8 +11,6 @@ import { bindAdmin } from "./bot/admin";
 import { bindLeaderboard } from "./bot/leaderboard";
 import { bindGeneral, defaultKeyboard } from "./bot/general";
 import { bindFeedback } from "./bot/feedback";
-import { startAnalyticsPageServer } from "./services/analytics-emulator/server";
-import { startAnalyticsBrowserEmulator } from "./services/analytics-emulator/browser-emulator";
 import { logEvent } from "./services/analytics-service";
 import "@sentry/tracing";
 import { bindTimePicker } from "./bot/time-picker";
@@ -57,9 +55,7 @@ admin.initializeApp({
 initDatabase();
 initTimetableService();
 initGroupsService();
-startAnalyticsPageServer()
-  .then(startAnalyticsBrowserEmulator)
-  .then(initialFetchUsersTop)
+initialFetchUsersTop()
   .then(startBot)
   .then(bot => initNotificationsService(bot));
 
@@ -87,6 +83,7 @@ function startBot(): Promise<Telegraf> {
 
   bindBot(bot);
   return bot.launch().then(() => {
+    console.log("Started bot!");
     process.once("SIGINT", () => bot.stop("SIGINT"));
     process.once("SIGTERM", () => bot.stop("SIGTERM"));
   }).then(() => bot);
