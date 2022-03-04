@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { JSDOM, DOMWindow } from "jsdom";
+import { JSDOM, DOMWindow, CookieJar } from "jsdom";
 import axios from "axios";
 import beaconPackage from "send-beacon";
 import { Event, PageViewEvent, UserPropertyUpdated } from "../analytics-service";
@@ -53,9 +53,9 @@ export function emulatePageView(e: PageViewEvent, callback?: (gtag: GtagFunction
           if (getBrowserSession(e.userId)?.state !== "idle") return;
           setBrowserSession(e.userId, { state: "finishing" });
           if (debugLog) console.log(`emulate view TO ${checkHash}`);
-          const window = getBrowserSession(e.userId)!.window!;
+          const s = getBrowserSession(e.userId)!;
           Promise.all([
-            setUserCookies(e.userId, window.document.cookie), window!.close(),
+            setUserCookies(e.userId, JSON.stringify(s.cookieJar!.toJSON())), s.window!.close(),
           ]).then(() => {
             removeBrowserSession(e.userId);
             tryRunStaleQueuedViews();
@@ -68,15 +68,11 @@ export function emulatePageView(e: PageViewEvent, callback?: (gtag: GtagFunction
 function createNewPage(event: PageViewEvent): Promise<void> {
   return getUserCookies(event.userId).then(cookies => {
     if (!event.url) event.url = "/";
-    const { window } = new JSDOM(getHtml(titlesMap[event.url] || "404"), {
-      url: constructEmulatedUrl(event),
+    const { window, cookieJar } = new JSDOM(getHtml(titlesMap[event.url] || "404"), {
+      url: constructEmulatedUrl(event), cookieJar: cookies ? CookieJar.fromJSON(cookies) : undefined,
     });
 
     const { document, navigator } = window;
-
-    // Set user cookies before analytics
-    if (cookies) for (const cookie of cookies.split(";"))
-      document.cookie = cookies;
 
     // Here are several hacky patches to make analytics work in JSDom
     Object.defineProperty(document, "visibilityState", {
@@ -101,7 +97,7 @@ function createNewPage(event: PageViewEvent): Promise<void> {
         window.gtag = function gtag() { window.dataLayer.push(arguments); };
         window.gtag("js", new Date());
 
-        setBrowserSession(event.userId, { window, gtag: window.gtag });
+        setBrowserSession(event.userId, { window, gtag: window.gtag, cookieJar });
         return loadPage(event, window);
       });
   });

@@ -1,4 +1,4 @@
-import { DOMWindow } from "jsdom";
+import { CookieJar, DOMWindow } from "jsdom";
 import { PageViewEvent } from "../analytics-service";
 
 export type GtagFunction = (action: string, value: string, params?: any, callback?: ()=> void)=> void;
@@ -7,6 +7,7 @@ interface EmulatedSession {
   state: "idle" | "updating" | "finishing";
   window?: DOMWindow;
   gtag?: GtagFunction;
+  cookieJar?: CookieJar;
   timeout: ReturnType<typeof setTimeout> | null;
 }
 
