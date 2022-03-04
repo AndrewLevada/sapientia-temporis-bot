@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { JSDOM, DOMWindow } from "jsdom";
 import axios from "axios";
+import beaconPackage from "send-beacon";
 import { Event, PageViewEvent, UserPropertyUpdated } from "../analytics-service";
 import { getUserCookies, setUserCookies } from "./emulator-cookies-service";
 import { getBrowserSession,
@@ -80,13 +82,14 @@ function createNewPage(event: PageViewEvent): Promise<void> {
       get() { return "visible"; },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    navigator.sendBeacon = (a, b) => {
-      console.log("beakon");
-      return true;
+    navigator.sendBeacon = (url, data) => {
+      if (debugLog) console.log("Sending out beacon!");
+      console.log(url);
+      console.log(data);
+      beaconPackage(url, data);
+      return false;
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const self = window;
 
     axios.get("https://www.googletagmanager.com/gtag/js?id=G-HYFTVXK74M")
@@ -96,7 +99,8 @@ function createNewPage(event: PageViewEvent): Promise<void> {
       });
 
     window.dataLayer = window.dataLayer || [];
-    window.gtag = function gtag(...args: any[]) { window.dataLayer.push(args); };
+    // eslint-disable-next-line prefer-rest-params
+    window.gtag = function gtag() { window.dataLayer.push(arguments); };
     window.gtag("js", new Date());
 
     setBrowserSession(event.userId, { window, gtag: window.gtag });
@@ -119,7 +123,7 @@ function shouldPageNavigate(event: PageViewEvent, path: string): boolean {
 }
 
 function constructEmulatedUrl(event: PageViewEvent): string {
-  return `https://example.org/`;
+  return `https://bot.analytics${event.url}`;
 }
 
 function isSessionLimitReached(): boolean {
