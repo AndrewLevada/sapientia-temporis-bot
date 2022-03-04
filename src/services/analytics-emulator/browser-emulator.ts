@@ -1,4 +1,5 @@
 import { JSDOM, DOMWindow } from "jsdom";
+import axios from "axios";
 import { Event, PageViewEvent, UserPropertyUpdated } from "../analytics-service";
 import { getUserCookies, setUserCookies } from "./emulator-cookies-service";
 import { getBrowserSession,
@@ -65,11 +66,34 @@ export function emulatePageView(e: PageViewEvent, callback?: (gtag: GtagFunction
 function createNewPage(event: PageViewEvent): Promise<void> {
   return getUserCookies(event.userId).then(cookies => {
     if (!event.url) event.url = "/";
-    const { window } = new JSDOM(getHtml(titlesMap[event.url] || "404", cookies), {
+    const { window } = new JSDOM(getHtml(titlesMap[event.url] || "404"), {
       url: constructEmulatedUrl(event),
-      resources: "usable",
-      runScripts: "dangerously",
     });
+
+    const { document, navigator } = window;
+
+    // Set user cookies before analytics
+    // if (cookies) document.cookie = cookies;
+
+    // Here are several hacky patches to make analytics work in JSDom
+    Object.defineProperty(document, "visibilityState", {
+      get() { return "visible"; },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    navigator.sendBeacon = (a, b) => {
+      console.log("beakon");
+      return true;
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const self = window;
+
+    axios.get("https://www.googletagmanager.com/gtag/js?id=G-HYFTVXK74M")
+      .then(res => res.data as string).then(gtagScript => {
+        // eslint-disable-next-line no-eval
+        eval(gtagScript);
+      });
 
     window.dataLayer = window.dataLayer || [];
     window.gtag = function gtag(...args: any[]) { window.dataLayer.push(args); };
@@ -81,8 +105,8 @@ function createNewPage(event: PageViewEvent): Promise<void> {
 }
 
 function loadPage(event: PageViewEvent, window: DOMWindow): Promise<void> {
-  if (!shouldPageNavigate(event, window.location.pathname)) return Promise.resolve();
-  window.location.pathname = event.url!;
+  // if (!shouldPageNavigate(event, window.location.pathname)) return Promise.resolve();
+  // window.location.pathname = event.url!;
   window.gtag("config", "G-HYFTVXK74M", { user_id: event.userId, transport_type: "beacon" });
   window.gtag("set", "user_properties", { crm_id: event.userId });
   return new Promise(resolve => {
@@ -95,7 +119,7 @@ function shouldPageNavigate(event: PageViewEvent, path: string): boolean {
 }
 
 function constructEmulatedUrl(event: PageViewEvent): string {
-  return `https://bot.analytics${event.url}`;
+  return `https://example.org/`;
 }
 
 function isSessionLimitReached(): boolean {
@@ -117,29 +141,13 @@ function tryRunQueuedViews(userId: string): boolean {
   return true;
 }
 
-function getHtml(title: string, cookies: string | null) {
+function getHtml(title: string) {
   return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>${title}</title>
-  <script>
-    // Set user cookies before analytics
-    window.document.cookie = ${cookies}
-  
-    // Here are several hacky patches to make analytics work in JSDom
-    Object.defineProperty(document, "visibilityState", {
-      get: function() { return "visible"; }
-    });
-
-    window.self = window;
-
-    navigator.sendBeacon = (a,b) => {
-        console.log("beakon");
-    }
-  </script>
-  <script src="https://www.googletagmanager.com/gtag/js?id=G-HYFTVXK74M"></script>
 </head>
 <body><p>OK</p></body>
 </html>
