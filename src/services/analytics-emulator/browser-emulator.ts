@@ -11,7 +11,7 @@ import { getBrowserSession,
   removeBrowserSession,
   setBrowserSession } from "./emulator-sessions-storage";
 
-const debugLog = true;
+const debugLog = false;
 const sessionIdleTime = 30000;
 
 export function emulateSendEvent(event: Event): Promise<void> {
@@ -75,7 +75,8 @@ function createNewPage(event: PageViewEvent): Promise<void> {
     const { document, navigator } = window;
 
     // Set user cookies before analytics
-    // if (cookies) document.cookie = cookies;
+    if (cookies) for (const cookie of cookies.split(";"))
+      document.cookie = cookies;
 
     // Here are several hacky patches to make analytics work in JSDom
     Object.defineProperty(document, "visibilityState", {
@@ -84,27 +85,25 @@ function createNewPage(event: PageViewEvent): Promise<void> {
 
     navigator.sendBeacon = (url, data) => {
       if (debugLog) console.log("Sending out beacon!");
-      console.log(url);
-      console.log(data);
       beaconPackage(url, data);
-      return false;
+      return true;
     };
 
     const self = window;
 
-    axios.get("https://www.googletagmanager.com/gtag/js?id=G-HYFTVXK74M")
+    return axios.get("https://www.googletagmanager.com/gtag/js?id=G-HYFTVXK74M")
       .then(res => res.data as string).then(gtagScript => {
         // eslint-disable-next-line no-eval
         eval(gtagScript);
+
+        window.dataLayer = window.dataLayer || [];
+        // eslint-disable-next-line prefer-rest-params
+        window.gtag = function gtag() { window.dataLayer.push(arguments); };
+        window.gtag("js", new Date());
+
+        setBrowserSession(event.userId, { window, gtag: window.gtag });
+        return loadPage(event, window);
       });
-
-    window.dataLayer = window.dataLayer || [];
-    // eslint-disable-next-line prefer-rest-params
-    window.gtag = function gtag() { window.dataLayer.push(arguments); };
-    window.gtag("js", new Date());
-
-    setBrowserSession(event.userId, { window, gtag: window.gtag });
-    return loadPage(event, window);
   });
 }
 
@@ -118,6 +117,7 @@ function loadPage(event: PageViewEvent, window: DOMWindow): Promise<void> {
   });
 }
 
+// TODO: Figure out how to use this correctly
 function shouldPageNavigate(event: PageViewEvent, path: string): boolean {
   return event.url !== null && path !== constructEmulatedUrl(event);
 }

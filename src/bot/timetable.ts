@@ -32,7 +32,7 @@ export function replyWithTimetableForDelta(ctx: CustomContext, dayDelta: number)
     }
 
     logEvent(ctx, "timetable_view", { type: "delta", dayDelta });
-    // collectAdditionalUserData(ctx, info);
+    collectAdditionalUserData(ctx, info);
 
     getTimetableForDelta(info, dayDelta).then((timetable: DateTimetable) => {
       ctx.replyWithMarkdownV2(`${deltaDayStrings[dayDelta + 1]} ${weekStrings[getDayOfWeekWithDelta(dayDelta)]}: \n\n${timetable.lessons.join("\n\n")}`, defaultKeyboard);
