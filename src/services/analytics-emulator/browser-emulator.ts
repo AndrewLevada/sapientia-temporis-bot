@@ -12,7 +12,7 @@ import { getBrowserSession,
   setBrowserSession } from "./emulator-sessions-storage";
 
 const debugLog = false;
-const sessionIdleTime = 30000;
+const sessionIdleTime = 8000;
 
 export function emulateSendEvent(event: Event): Promise<void> {
   return emulatePageView({ userId: event.userId, url: `/${event.name}` },
@@ -41,81 +41,81 @@ export function emulatePageView(e: PageViewEvent, callback?: (gtag: GtagFunction
     pushToEmulationRequestsQueue({ callback, event: e });
     return Promise.resolve();
   }
-  if (debugLog) console.log(`emulate view start NOW ${checkHash}`);
+  if (debugLog) console.log(`emulate view start NOW ${checkHash}, ${e.url}`);
 
   setBrowserSession(e.userId, { state: "updating" });
-  return (session ? loadPage(e, session.window!) : createNewPage(e)).then(() => {
+  return (!session || shouldPageNavigate(e, session.window) ? createNewPage(e) : Promise.resolve()).then(() => {
     (callback ? callback(getBrowserSession(e.userId)!.gtag!) : Promise.resolve()).then(() => {
       setBrowserSession(e.userId, { state: "idle" });
       if (debugLog) console.log(`emulate view DONE ${checkHash}`);
-      if (!tryRunQueuedViews(e.userId))
-        setBrowserSession(e.userId, { timeout: setTimeout(() => {
-          if (getBrowserSession(e.userId)?.state !== "idle") return;
-          setBrowserSession(e.userId, { state: "finishing" });
-          if (debugLog) console.log(`emulate view TO ${checkHash}`);
-          const s = getBrowserSession(e.userId)!;
-          Promise.all([
-            setUserCookies(e.userId, JSON.stringify(s.cookieJar!.toJSON())), s.window!.close(),
-          ]).then(() => {
+      setBrowserSession(e.userId, { timeout: setTimeout(() => {
+        if (getBrowserSession(e.userId)?.state !== "idle") return;
+        setBrowserSession(e.userId, { state: "finishing" });
+        if (debugLog) console.log(`emulate view TO ${checkHash}`);
+        const s = getBrowserSession(e.userId)!;
+          s.window!.close();
+          setUserCookies(e.userId, JSON.stringify(s.cookieJar!.toJSON())).then(() => {
             removeBrowserSession(e.userId);
-            tryRunStaleQueuedViews();
+            if (!tryRunQueuedViews(e.userId)) tryRunStaleQueuedViews();
           });
-        }, sessionIdleTime) });
+      }, sessionIdleTime) });
     });
   });
 }
 
 function createNewPage(event: PageViewEvent): Promise<void> {
+  const session = getBrowserSession(event.userId);
+  const oldCookieJar = session?.cookieJar;
+  if (session && session.window) session.window.close();
+
   return getUserCookies(event.userId).then(cookies => {
     if (!event.url) event.url = "/";
     const { window, cookieJar } = new JSDOM(getHtml(titlesMap[event.url] || "404"), {
-      url: constructEmulatedUrl(event), cookieJar: cookies ? CookieJar.fromJSON(cookies) : undefined,
+      url: constructEmulatedUrl(event), cookieJar: oldCookieJar || (cookies ? CookieJar.fromJSON(cookies) : undefined),
     });
-
-    const { document, navigator } = window;
-
-    // Here are several hacky patches to make analytics work in JSDom
-    Object.defineProperty(document, "visibilityState", {
-      get() { return "visible"; },
-    });
-
-    navigator.sendBeacon = (url, data) => {
-      if (debugLog) console.log("Sending out beacon!");
-      beaconPackage(url, data);
-      return true;
-    };
-
-    const self = window;
 
     return axios.get("https://www.googletagmanager.com/gtag/js?id=G-HYFTVXK74M")
       .then(res => res.data as string).then(gtagScript => {
-        // eslint-disable-next-line no-eval
-        eval(gtagScript);
+        const { document, navigator } = window;
+        const self = window;
 
-        window.dataLayer = window.dataLayer || [];
-        // eslint-disable-next-line prefer-rest-params
-        window.gtag = function gtag() { window.dataLayer.push(arguments); };
-        window.gtag("js", new Date());
+        // Here are several hacky patches to make analytics work in JSDom
+        Object.defineProperty(document, "visibilityState", {
+          get() { return "visible"; },
+        });
 
-        setBrowserSession(event.userId, { window, gtag: window.gtag, cookieJar });
-        return loadPage(event, window);
+        return new Promise<void>(resolve => {
+          navigator.sendBeacon = (url, data) => {
+            if (debugLog) console.log("Sending out beacon!");
+            beaconPackage(url, data);
+            resolve();
+            return true;
+          };
+
+          try {
+            // eslint-disable-next-line no-eval
+            eval(gtagScript);
+          } catch (ex) {
+            console.error("Exception occurred in analytics while evaling gtag.js");
+            console.error(ex);
+          }
+
+          window.dataLayer = window.dataLayer || [];
+          // eslint-disable-next-line prefer-rest-params
+          window.gtag = function gtag() { window.dataLayer.push(arguments); };
+          setBrowserSession(event.userId, { window, gtag: window.gtag, cookieJar });
+
+          window.gtag("js", new Date());
+          window.gtag("config", "G-HYFTVXK74M", { user_id: event.userId, transport_type: "beacon" });
+          window.gtag("set", "user_properties", { crm_id: event.userId });
+        }).then();
       });
   });
 }
 
-function loadPage(event: PageViewEvent, window: DOMWindow): Promise<void> {
-  // if (!shouldPageNavigate(event, window.location.pathname)) return Promise.resolve();
-  // window.location.pathname = event.url!;
-  window.gtag("config", "G-HYFTVXK74M", { user_id: event.userId, transport_type: "beacon" });
-  window.gtag("set", "user_properties", { crm_id: event.userId });
-  return new Promise(resolve => {
-    window.gtag("get", "G-HYFTVXK74M", "session_id", resolve);
-  });
-}
-
-// TODO: Figure out how to use this correctly
-function shouldPageNavigate(event: PageViewEvent, path: string): boolean {
-  return event.url !== null && path !== constructEmulatedUrl(event);
+function shouldPageNavigate(event: PageViewEvent, window: DOMWindow | undefined): boolean {
+  if (!window) return true;
+  return event.url !== null && window.location.pathname !== constructEmulatedUrl(event);
 }
 
 function constructEmulatedUrl(event: PageViewEvent): string {
@@ -157,6 +157,7 @@ function getHtml(title: string) {
 const titlesMap: Record<string, string> = {
   "/start_command": "Добро пожаловать",
   "/help_command": "Помощь",
+  "/": "Главный экран",
   "/default": "Главный экран",
   "/settings": "Настройки",
   "/leaderboard_view": "Лидерборд",
