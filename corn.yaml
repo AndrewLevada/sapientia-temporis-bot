@@ -1,4 +1,4 @@
 corn:
   - description: "push"
     url: /
-    schedulte: every 2 minutes
+    schedule: every 2 minutes
