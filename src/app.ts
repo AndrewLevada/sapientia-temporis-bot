@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/node";
 import { CallbackQuery, Message } from "typegram";
 import telegrafThrottler from "telegraf-throttler";
 import Bottleneck from "bottleneck";
+import express from "express";
 import { initialFetchUsersTop } from "./services/user-service";
 import { bindUserInfoChange } from "./bot/user-info-change";
 import { bindTimetable } from "./bot/timetable";
@@ -51,6 +52,8 @@ admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(Buffer.from(process.env.FIREBASE_CONFIG as string, "base64").toString("ascii"))),
   databaseURL: process.env.FIREBASE_DATABASE_URL as string,
 });
+
+startExpress();
 
 initDatabase();
 initTimetableService();
@@ -121,4 +124,14 @@ function bindBot(bot: Telegraf) {
     if (!text.startsWith("ignore")) logEvent(ctx, "unrecognized", { text });
     ctx.answerCbQuery();
   });
+}
+
+function startExpress() {
+  const app = express();
+
+  app.get("/", (req, res) => {
+    res.send("OK");
+  });
+
+  app.listen(8080);
 }
