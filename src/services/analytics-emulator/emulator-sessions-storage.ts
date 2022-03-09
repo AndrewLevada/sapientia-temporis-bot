@@ -52,3 +52,7 @@ export function getStaleQueueUserId(): string | undefined {
   for (const userId of userIds) if (sessions[userId] === undefined) return userId;
   return undefined;
 }
+
+export function getSessionsNumber(): number {
+  return Object.keys(sessions).length;
+}

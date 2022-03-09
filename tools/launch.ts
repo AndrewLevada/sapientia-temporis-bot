@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import { init } from "./users-query";
+import { loadTestAnalyticsEmulator } from "./analytics-emulator-test";
 
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(Buffer.from(process.env.FIREBASE_CONFIG as string, "base64").toString("ascii"))),
@@ -9,3 +10,5 @@ admin.initializeApp({
 init();
 
 // Execute tool here
+
+loadTestAnalyticsEmulator(20);

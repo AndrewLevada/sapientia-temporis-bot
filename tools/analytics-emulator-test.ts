@@ -1,11 +1,13 @@
 import { emulateSendEvent } from "../src/services/analytics-emulator/browser-emulator";
 import { getBrowserSession } from "../src/services/analytics-emulator/emulator-sessions-storage";
+import { initDatabase } from "../src/services/db";
 
-const firstStageLag = 6 * 1000;
-const secondStageLag = 10 * 1000;
+const firstStageLag = 4 * 1000;
+const secondStageLag = 4 * 1000;
 
 // eslint-disable-next-line import/prefer-default-export
 export function loadTestAnalyticsEmulator(loadFactor: number) {
+  initDatabase();
   console.log("LOAD TEST STARTED");
   Promise.all(Array(loadFactor).fill(null).map((v, i) => emulateLoad(i)))
     .then(() => console.log("LOAD TEST DONE"))

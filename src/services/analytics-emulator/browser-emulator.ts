@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { JSDOM, DOMWindow, CookieJar } from "jsdom";
 import axios from "axios";
-import beaconPackage from "send-beacon";
+import beaconPackage from "@andrewlevada/send-beacon";
 import { Event, PageViewEvent, UserPropertyUpdated } from "../analytics-service";
 import { getUserCookies, setUserCookies } from "./emulator-cookies-service";
-import { getBrowserSession,
+import { getBrowserSession, getSessionsNumber,
   getStaleQueueUserId, GtagFunction,
   popFromEmulationRequestsQueue,
   pushToEmulationRequestsQueue,
@@ -90,7 +90,7 @@ function createNewPage(event: PageViewEvent): Promise<void> {
 
         navigator.sendBeacon = (url, data) => {
           if (debugLog) console.log("Sending out beacon!");
-          beaconPackage(url, data);
+          beaconPackage(url as string, data);
           const callback = getBrowserSession(event.userId)?.beaconCallback;
           if (callback) callback();
           return true;
@@ -129,7 +129,7 @@ function constructEmulatedUrl(event: PageViewEvent): string {
 }
 
 function isSessionLimitReached(): boolean {
-  return false; // TODO: Implement
+  return getSessionsNumber() >= 10;
 }
 
 function tryRunStaleQueuedViews(): void {

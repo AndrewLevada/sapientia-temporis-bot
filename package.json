@@ -14,6 +14,7 @@
     "start": "cross-env NODE_ENV=production node build/app.js --enable-source-maps"
   },
   "dependencies": {
+    "@andrewlevada/send-beacon": "^0.0.3",
     "@sentry/node": "^6.18.1",
     "@sentry/tracing": "^6.18.1",
     "axios": "^0.26.0",
@@ -23,7 +24,6 @@
     "firebase-admin": "^10.0.2",
     "jsdom": "^19.0.0",
     "node-schedule": "^2.1.0",
-    "send-beacon": "^0.0.1",
     "telegraf": "^4.7.0",
     "telegraf-throttler": "^0.6.0",
     "typegram": "^3.8.0",
