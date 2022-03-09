@@ -1,4 +1,0 @@
-corn:
-  - description: "push"
-    url: /
-    schedule: every 2 minutes
