@@ -12,13 +12,14 @@ import { getBrowserSession,
   setBrowserSession } from "./emulator-sessions-storage";
 
 const debugLog = false;
-const sessionIdleTime = 8000;
+const sessionIdleTime = 10000;
 
 export function emulateSendEvent(event: Event): Promise<void> {
   return emulatePageView({ userId: event.userId, url: `/${event.name}` },
     gtag => new Promise(resolve => {
+      setBrowserSession(event.userId, { beaconCallback: resolve });
       if (event.params === undefined) event.params = {};
-      event.params.event_callback = resolve;
+      event.params.event_timeout = 0;
       gtag("event", event.name, event.params);
     }));
 }
@@ -26,6 +27,7 @@ export function emulateSendEvent(event: Event): Promise<void> {
 export function emulateUserPropertiesUpdate(event: UserPropertyUpdated): Promise<void> {
   return emulatePageView({ userId: event.userId, url: null },
     gtag => new Promise(resolve => {
+      setBrowserSession(event.userId, { beaconCallback: undefined });
       event.properties = { ...event.properties, crm_id: event.userId };
       gtag("set", "user_properties", event.properties);
       gtag("get", "G-HYFTVXK74M", "user_properties", resolve);
@@ -45,9 +47,11 @@ export function emulatePageView(e: PageViewEvent, callback?: (gtag: GtagFunction
 
   setBrowserSession(e.userId, { state: "updating" });
   return (!session || shouldPageNavigate(e, session.window) ? createNewPage(e) : Promise.resolve()).then(() => {
+    if (debugLog) console.log(`emulate view DONE SETUP ${checkHash}`);
     (callback ? callback(getBrowserSession(e.userId)!.gtag!) : Promise.resolve()).then(() => {
       setBrowserSession(e.userId, { state: "idle" });
       if (debugLog) console.log(`emulate view DONE ${checkHash}`);
+      if (tryRunQueuedViews(e.userId)) return;
       setBrowserSession(e.userId, { timeout: setTimeout(() => {
         if (getBrowserSession(e.userId)?.state !== "idle") return;
         setBrowserSession(e.userId, { state: "finishing" });
@@ -84,26 +88,28 @@ function createNewPage(event: PageViewEvent): Promise<void> {
           get() { return "visible"; },
         });
 
+        navigator.sendBeacon = (url, data) => {
+          if (debugLog) console.log("Sending out beacon!");
+          beaconPackage(url, data);
+          const callback = getBrowserSession(event.userId)?.beaconCallback;
+          if (callback) callback();
+          return true;
+        };
+
+        try {
+          // eslint-disable-next-line no-eval
+          eval(gtagScript);
+        } catch (ex) {
+          console.error("Exception occurred in analytics while evaling gtag.js");
+          console.error(ex);
+        }
+
+        window.dataLayer = window.dataLayer || [];
+        // eslint-disable-next-line prefer-rest-params
+        window.gtag = function gtag() { window.dataLayer.push(arguments); };
+
         return new Promise<void>(resolve => {
-          navigator.sendBeacon = (url, data) => {
-            if (debugLog) console.log("Sending out beacon!");
-            beaconPackage(url, data);
-            resolve();
-            return true;
-          };
-
-          try {
-            // eslint-disable-next-line no-eval
-            eval(gtagScript);
-          } catch (ex) {
-            console.error("Exception occurred in analytics while evaling gtag.js");
-            console.error(ex);
-          }
-
-          window.dataLayer = window.dataLayer || [];
-          // eslint-disable-next-line prefer-rest-params
-          window.gtag = function gtag() { window.dataLayer.push(arguments); };
-          setBrowserSession(event.userId, { window, gtag: window.gtag, cookieJar });
+          setBrowserSession(event.userId, { window, gtag: window.gtag, cookieJar, beaconCallback: resolve });
 
           window.gtag("js", new Date());
           window.gtag("config", "G-HYFTVXK74M", { user_id: event.userId, transport_type: "beacon" });

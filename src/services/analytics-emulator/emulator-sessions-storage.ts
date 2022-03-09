@@ -7,6 +7,7 @@ interface EmulatedSession {
   state: "idle" | "updating" | "finishing";
   window?: DOMWindow;
   gtag?: GtagFunction;
+  beaconCallback?: ()=> void;
   cookieJar?: CookieJar;
   timeout: ReturnType<typeof setTimeout> | null;
 }
