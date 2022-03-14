@@ -83,13 +83,18 @@ function validateHashedData(): Promise<void> {
   if (new Date().valueOf() - lastHashCheckTime <= 1000 * 20) return Promise.resolve();
   lastHashCheckTime = new Date().valueOf();
 
-  return Promise.all([
-    axios.get("http://raspisanie.nikasoft.ru/check/47307204.html").then(res => res.data as string),
-    db("timetable/hashed_version").once("value").then(snap => snap.val() as string),
-  ]).then(([currentVersion, cachedVersion]) => {
-    if (cachedVersion === currentVersion) return Promise.resolve();
-    return updateHashedData(currentVersion);
-  });
+  try {
+    return Promise.all([
+      axios.get("http://raspisanie.nikasoft.ru/check/47307204.html")
+        .then(res => res.data as string).catch(() => Promise.resolve(null)),
+      db("timetable/hashed_version").once("value").then(snap => snap.val() as string),
+    ]).then(([currentVersion, cachedVersion]) => {
+      if (currentVersion === null || cachedVersion === currentVersion) return Promise.resolve();
+      return updateHashedData(currentVersion);
+    });
+  } catch (e) {
+    return Promise.resolve();
+  }
 }
 
 function updateHashedData(version: string): Promise<void> {
