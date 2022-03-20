@@ -88,11 +88,9 @@ function startBot(): Promise<Telegraf> {
 
   return (isProduction()
     ? bot.telegram.setWebhook(`${productionUrl}/${bot.secretPathComponent()}`)
-    : bot.launch()).then(() => {
-    console.log("Started bot!");
-    process.once("SIGINT", () => bot.stop("SIGINT"));
-    process.once("SIGTERM", () => bot.stop("SIGTERM"));
-  }).then(() => bot);
+    : bot.launch())
+    .then(() => console.log("Started bot!"))
+    .then(() => bot);
 }
 
 function bindBot(bot: Telegraf) {
