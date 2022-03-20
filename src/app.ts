@@ -97,7 +97,12 @@ function startBot(): Promise<Telegraf> {
 
 function bindBot(bot: Telegraf) {
   bot.use((ctx, next) => {
-    const userId = ctx.from!.id.toString();
+    if (!ctx.from) {
+      console.log(`Update without .from - ignoring (${JSON.stringify(ctx?.chat)})`);
+      return;
+    }
+
+    const userId = ctx.from.id.toString();
     Sentry.setUser({ id: userId });
     ctx.userId = userId;
 
