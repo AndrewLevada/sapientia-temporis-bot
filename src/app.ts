@@ -22,6 +22,7 @@ import { initGroupsService } from "./services/groups-service";
 import texts from "./bot/texts";
 import { bindNotifications } from "./bot/notifications";
 import { initNotificationsService } from "./services/notifications-service";
+import { isProduction, productionUrl } from "./env";
 
 type SessionState = "section-change" | "group-change" | "normal" | "feedback" | "notifications" | "settings" | "notifications_time";
 const sessionsStorage: Record<string, SessionState> = {};
@@ -53,8 +54,6 @@ admin.initializeApp({
   databaseURL: process.env.FIREBASE_DATABASE_URL as string,
 });
 
-startExpress();
-
 initDatabase();
 initTimetableService();
 initGroupsService();
@@ -74,7 +73,7 @@ function startBot(): Promise<Telegraf> {
     },
     out: {
       minTime: 20,
-      reservoir: 100,
+      reservoir: 200,
       reservoirRefreshAmount: 100,
       reservoirRefreshInterval: 2000,
     },
@@ -84,8 +83,12 @@ function startBot(): Promise<Telegraf> {
     },
   }));
 
+  startExpress(bot);
   bindBot(bot);
-  return bot.launch().then(() => {
+
+  return (isProduction()
+    ? bot.telegram.setWebhook(`${productionUrl}/${bot.secretPathComponent()}`)
+    : bot.launch()).then(() => {
     console.log("Started bot!");
     process.once("SIGINT", () => bot.stop("SIGINT"));
     process.once("SIGTERM", () => bot.stop("SIGTERM"));
@@ -126,12 +129,15 @@ function bindBot(bot: Telegraf) {
   });
 }
 
-function startExpress() {
+function startExpress(bot: Telegraf) {
   const app = express();
 
   app.get("/", (req, res) => {
     res.send("OK");
   });
+
+  if (isProduction())
+    app.use(bot.webhookCallback(`/${bot.secretPathComponent()}`));
 
   app.listen(8080);
 }
