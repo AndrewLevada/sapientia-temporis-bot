@@ -142,5 +142,5 @@ function startExpress(bot: Telegraf) {
   if (isProduction())
     app.use(bot.webhookCallback(`/${bot.secretPathComponent()}`));
 
-  app.listen(8080);
+  app.listen(process.env.PORT || 443);
 }
