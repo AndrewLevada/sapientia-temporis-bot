@@ -1,6 +1,6 @@
 {
   "name": "sapientia-temporis-bot",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "private": true,
   "license": "BSD-3-Clause",
   "repository": {
@@ -10,8 +10,8 @@
   "scripts": {
     "serve": "tsc && cross-env NODE_ENV=development node build/app.js --enable-source-maps",
     "tools": "cross-env NODE_ENV=tools ts-node tools/launch.ts",
-    "deploy": "tsc && gcloud app deploy --project=sapientia-temporis-bot",
-    "start": "cross-env NODE_ENV=production node build/app.js --enable-source-maps"
+    "start": "cross-env NODE_ENV=production node build/app.js --enable-source-maps",
+    "build": "tsc"
   },
   "dependencies": {
     "@andrewlevada/send-beacon": "^0.0.3",
