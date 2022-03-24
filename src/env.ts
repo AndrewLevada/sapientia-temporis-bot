@@ -1,4 +1,4 @@
-export const productionUrl = "https://sapientia-temporis-bot.appspot.com";
+export const productionUrl = "https://sapientia-temporis-bot.herokuapp.com";
 export const adminUsername = "andrewlevada";
 export const adminUserId = "548598411";
 
