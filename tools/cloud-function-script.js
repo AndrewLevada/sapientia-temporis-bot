@@ -12,8 +12,8 @@ async function shouldWakeUp() {
 	const now = new Date();
 	const timeMark = `${timeToString(now.getHours())}:${timeToString(now.getMinutes())}`;
 	const res = await fetch(`${process.env.HEAP_URL}/${timeMark}.json`);
-	const data = await res.json();
-	return !!data && !!data.length;
+	const data = await res.text();
+	return data !== "null";
 }
 
 function timeToString(v) {
