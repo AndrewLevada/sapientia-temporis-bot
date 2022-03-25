@@ -41,6 +41,7 @@
     "eslint-import-resolver-typescript": "^2.5.0",
     "eslint-plugin-import": "^2.25.4",
     "json2csv": "^5.0.7",
+    "node-fetch": "^3.2.3",
     "ts-node": "^10.7.0"
   }
 }
