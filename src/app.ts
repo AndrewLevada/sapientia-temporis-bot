@@ -24,6 +24,8 @@ import { bindNotifications } from "./bot/notifications";
 import { initNotificationsService } from "./services/notifications-service";
 import { isProduction, productionUrl } from "./env";
 
+console.time("Initialization");
+
 type SessionState = "section-change" | "group-change" | "normal" | "feedback" | "notifications" | "settings" | "notifications_time";
 const sessionsStorage: Record<string, SessionState> = {};
 export class CustomContext extends Context {
@@ -41,27 +43,38 @@ export class CustomContext extends Context {
 
 export type Telegraf = GenericTelegraf<CustomContext>;
 
+console.time("Sentry Init");
+
 if (process.env.NODE_ENV !== "development") Sentry.init({
   dsn: process.env.SENTRY_DSN,
   tracesSampleRate: 0.8,
   integrations: [new Sentry.Integrations.Http({ tracing: true })],
 });
 
+console.timeEnd("Sentry Init");
+
 process.env.TZ = "Europe/Moscow";
+
+console.time("Firebase Init");
 
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(Buffer.from(process.env.FIREBASE_CONFIG as string, "base64").toString("ascii"))),
   databaseURL: process.env.FIREBASE_DATABASE_URL as string,
 });
 
+console.timeEnd("Firebase Init");
+
+console.time("Firebase Startup");
 initDatabase();
 initTimetableService();
 initGroupsService();
-initialFetchUsersTop()
-  .then(startBot)
-  .then(bot => initNotificationsService(bot));
+console.timeEnd("Firebase Startup");
+startBot()
+  .then(bot => initNotificationsService(bot))
+  .then(() => initialFetchUsersTop());
 
 function startBot(): Promise<Telegraf> {
+  console.time("Starting bot");
   const bot = new GenericTelegraf(process.env.TELEGRAM_API_KEY as string, { contextType: CustomContext });
 
   bot.use(telegrafThrottler({
@@ -86,10 +99,15 @@ function startBot(): Promise<Telegraf> {
   startExpress(bot);
   bindBot(bot);
 
+  console.timeEnd("Starting bot");
+
   return (isProduction()
     ? bot.telegram.setWebhook(`${productionUrl}/${bot.secretPathComponent()}`)
     : bot.launch())
-    .then(() => console.log("Started bot!"))
+    .then(() => {
+      console.timeEnd("Initialization");
+      console.log("Started bot!");
+    })
     .then(() => bot);
 }
 
