@@ -2,7 +2,7 @@ import { Markup } from "telegraf";
 import { CallbackQuery } from "typegram/callback";
 import { encodeGroup } from "../services/groups-service";
 import { BroadcastGroup, BroadcastGroupType, broadcastMessage } from "../services/broadcast-service";
-import { adminUsername } from "../env";
+import { getAdminRoleFromUsername } from "../env";
 import { logEvent } from "../services/analytics-service";
 import texts from "./texts";
 import { getExchangeNotificationsReport, getStudentsReport, getTeachersReport } from "../services/reports-service";
@@ -28,28 +28,29 @@ export function bindAdmin(bot: Telegraf) {
   bot.hears(texts.keys.settings.adminSettings, ctx => ctx.reply("Admin", adminKeyboard));
 
   bot.command("/students_report", ctx => {
-    if (ctx.message.from.username !== adminUsername) return;
+    if (!getAdminRoleFromUsername(ctx.message.from.username)?.adminSettings) return;
     getStudentsReport().then(report => ctx.reply(report));
   });
 
   bot.command("/teachers_report", ctx => {
-    if (ctx.message.from.username !== adminUsername) return;
+    if (!getAdminRoleFromUsername(ctx.message.from.username)?.adminSettings) return;
     getTeachersReport().then(report => ctx.reply(report));
   });
 
   bot.command("/exchange_notifications_report", ctx => {
-    if (ctx.message.from.username !== adminUsername) return;
+    if (!getAdminRoleFromUsername(ctx.message.from.username)?.adminSettings) return;
     getExchangeNotificationsReport().then(report => ctx.reply(report));
   });
 
   bot.command("/broadcast", ctx => {
-    if (ctx.message.from.username !== adminUsername) return;
+    if (!getAdminRoleFromUsername(ctx.message.from.username)?.adminSettings) return;
     broadcastState.status = "group";
-    ctx.reply("Хорошо, Перехожу в режим трансляции. Введите название группы для трансляции (10a, 10, students, teachers, all, userId, userIdList), cancel для отмены.");
+    ctx.reply("Хорошо, Перехожу в режим трансляции. Введите название группы для трансляции (10a, 10, students, teachers, all, userId, userIdList [11,22,33]), cancel для отмены.");
   });
 
   bot.on("text", (ctx, next) => {
-    if (ctx.message.from.username !== adminUsername || broadcastState.status === "none") next();
+    if (!getAdminRoleFromUsername(ctx.message.from.username)?.adminSettings) next();
+    else if (broadcastState.status === "none") next();
     else if (broadcastState.status === "group") processBroadcastGroup(ctx);
     else if (broadcastState.status === "message") processBroadcastMessage(ctx);
     else if (broadcastState.status === "confirmation") processBroadcastConfirmation(bot, ctx);

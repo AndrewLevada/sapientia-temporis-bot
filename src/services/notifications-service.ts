@@ -5,7 +5,7 @@ import { getFullUserInfo,
   getUsersCount, getUsersWithNotificationsOn,
   setUserInfo } from "./user-service";
 import { getTimetableForDelta } from "./timetable-service";
-import { broadcastMessage, sendMessageToAdmin } from "./broadcast-service";
+import { broadcastMessage, sendMessageToAdmins } from "./broadcast-service";
 import { Telegraf } from "../app";
 import { db } from "./db";
 import { defaultNotificationTime } from "../bot/notifications";
@@ -54,7 +54,7 @@ function sendNotifications(bot: Telegraf, time: string): void {
         }))).then(() => getUsersCount()).then(totalUsers => {
         console.log(`Sent timed notifications (at ${time}) with ${totalUsers}/${users.length}/${mutatedNum}`);
         if (mutatedNum === 0) return;
-        sendMessageToAdmin(bot, texts.res.notifications.adminUpdate(time,
+        sendMessageToAdmins(bot, texts.res.notifications.adminUpdate(time,
           [totalUsers, users.length, mutatedNum])).then();
       });
     });

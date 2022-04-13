@@ -1,8 +1,8 @@
 import { emulatePageView, emulateSendEvent, emulateUserPropertiesUpdate } from "./analytics-emulator/browser-emulator";
-import { adminUserId } from "../env";
 import { CustomContext } from "../app";
+import { admins } from "../env";
 
-const doIgnoreAdmin = true;
+const excludeRole = true;
 
 export interface PageViewEvent {
   userId: string;
@@ -21,13 +21,13 @@ export interface UserPropertyUpdated {
 }
 
 export function logPageView(ctx: CustomContext, url: string): void {
-  if (ctx.userId === adminUserId && doIgnoreAdmin) return;
+  if (isExcluded(ctx.userId) && excludeRole) return;
   emulatePageView({ userId: ctx.userId, url }).then();
 }
 
 export function logEvent(userIdProvider: CustomContext | string, name: string, params?: Record<string, any>): void {
   const userId = typeof userIdProvider === "string" ? userIdProvider : userIdProvider.userId;
-  if (userId === adminUserId && doIgnoreAdmin) return;
+  if (isExcluded(userId) && excludeRole) return;
   emulateSendEvent({ userId, name, params }).then();
 }
 
@@ -39,7 +39,7 @@ export type UserProperty = "group" | "notifications" | "notifications_time";
 
 // eslint-disable-next-line max-len
 export function logUserPropChange(userId: string, property: UserProperty, value: string | boolean, onlyChangeProperty?: boolean): void {
-  if (userId === adminUserId && doIgnoreAdmin) return;
+  if (isExcluded(userId) && excludeRole) return;
   const o: Record<string, any> = {};
   o[property] = value;
   (onlyChangeProperty ? Promise.resolve() : emulateSendEvent({
@@ -47,4 +47,10 @@ export function logUserPropChange(userId: string, property: UserProperty, value:
     name: `${property}_change`,
     params: o,
   })).then(() => emulateUserPropertiesUpdate({ userId, properties: o }));
+}
+
+function isExcluded(userId: string): boolean {
+  const admin = admins.find(u => u.userId === userId);
+  if (!admin) return false;
+  return !!admin.analyticsExcluded;
 }

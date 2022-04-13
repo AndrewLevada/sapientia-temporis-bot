@@ -3,7 +3,7 @@ import { ReplyKeyboardMarkup } from "typegram";
 import { logEvent, logPageView } from "../services/analytics-service";
 import { changeUserInfo } from "./user-info-change";
 import texts from "./texts";
-import { adminUserId } from "../env";
+import { getAdminRole } from "../env";
 import { CustomContext, Telegraf } from "../app";
 import { getUserInfo } from "../services/user-service";
 
@@ -23,7 +23,7 @@ export function getSettingsKeyboard(ctx: CustomContext, noAdmin?: boolean): Prom
       ? [texts.keys.settings.configNotifications]
       : [texts.keys.settings.enableNotifications]);
 
-    keys.push(ctx.userId === adminUserId && !noAdmin
+    keys.push(getAdminRole(ctx.userId)?.adminSettings && !noAdmin
       ? [texts.keys.settings.adminSettings]
       : [texts.keys.settings.feedback]);
 

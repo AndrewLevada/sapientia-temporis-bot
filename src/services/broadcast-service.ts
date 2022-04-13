@@ -1,7 +1,7 @@
 import { Markup } from "telegraf";
 import { getUsersIdsByGroup } from "./user-service";
 import { logAdminEvent } from "./analytics-service";
-import { adminUserId } from "../env";
+import { admins } from "../env";
 import { Telegraf } from "../app";
 
 export type BroadcastGroupType = "section" | "grade" | "group" | "userId" | "userIdList";
@@ -35,8 +35,9 @@ export function broadcastMessage(bot: Telegraf, group: BroadcastGroup, text: str
   });
 }
 
-export function sendMessageToAdmin(bot: Telegraf, text: string): Promise<void> {
-  return bot.telegram.sendMessage(adminUserId, text).then();
+export function sendMessageToAdmins(bot: Telegraf, text: string): Promise<void> {
+  const sendTo = admins.filter(u => !!u.notificationsPing);
+  return Promise.all(sendTo.map(admin => bot.telegram.sendMessage(admin.userId, text))).then();
 }
 
 function delay(n: number) {
