@@ -10,6 +10,7 @@ import { Telegraf } from "../app";
 import { db } from "./db";
 import { defaultNotificationTime } from "../bot/notifications";
 import texts from "../bot/texts";
+import { admins } from '../env';
 
 // eslint-disable-next-line import/prefer-default-export
 export function initNotificationsService(bot: Telegraf): void {
@@ -54,8 +55,11 @@ function sendNotifications(bot: Telegraf, time: string): void {
         }))).then(() => getUsersCount()).then(totalUsers => {
         console.log(`Sent timed notifications (at ${time}) with ${totalUsers}/${users.length}/${mutatedNum}`);
         if (mutatedNum === 0) return;
-        sendMessageToAdmins(bot, texts.res.notifications.adminUpdate(time,
-          [totalUsers, users.length, mutatedNum])).then();
+        sendMessageToAdmins(bot, texts.res.notifications.adminUpdate(
+          time,
+          [totalUsers, users.length, mutatedNum]),
+          admins.filter(u => !!u.notificationsPing).map(u => u.userId),
+        ).then();
       });
     });
 }

@@ -3,6 +3,7 @@ import { decodeGroup } from "./groups-service";
 import { sendMessageToAdmins } from "./broadcast-service";
 import { db } from "./db";
 import { Telegraf } from "../app";
+import { admins } from '../env';
 
 interface FeedbackReport {
   userId: string;
@@ -43,5 +44,5 @@ function sendFeedbackToAdmin(bot: Telegraf, report: FeedbackReport): Promise<voi
   text += `Отправитель ${report.userFirstName} (@${report.userAlias}, userId-${report.userId}) из группы ${report.userType} ${report.userGroup} \n`;
   text += "Текст: \n\n";
   text += report.text;
-  return sendMessageToAdmins(bot, text);
+  return sendMessageToAdmins(bot, text, admins.map(v => v.userId));
 }

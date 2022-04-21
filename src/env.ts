@@ -13,7 +13,6 @@ export const admins: readonly AdminRole[] = [
     username: "andrewlevada",
     userId: "548598411",
     analyticsExcluded: true,
-    notificationsPing: true,
     adminSettings: true,
   },
   {
