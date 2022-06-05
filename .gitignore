@@ -1,6 +1,6 @@
-# Generated directories:
 build/
 node_modules/
+heroku_mount/
 
 # Project files:
 *.sublime-*

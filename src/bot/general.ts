@@ -44,6 +44,11 @@ export function bindGeneral(bot: Telegraf) {
     ctx.reply(texts.res.general.help);
   });
 
+  bot.on("text", ctx => {
+    // Summer blocker
+    ctx.reply(texts.res.general.summer);
+  });
+
   bot.command("/settings", ctx => replyWithSettings(ctx, true)); // For debug
   bot.hears(texts.keys.default.oldMore, ctx => replyWithSettings(ctx));
   bot.hears(texts.keys.default.more, ctx => replyWithSettings(ctx));
