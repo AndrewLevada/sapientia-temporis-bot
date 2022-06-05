@@ -1,5 +1,5 @@
 import { Markup } from "telegraf";
-import { CallbackQuery } from "typegram/callback";
+import { CallbackQuery } from "typegram";
 import { CustomContext, Telegraf } from "../app";
 
 const minutesCycle = ["00", "15", "30", "45"];
@@ -29,7 +29,7 @@ export function getTimePickerKeyboard(time: string[]) {
 
 export function bindTimePicker(bot: Telegraf) {
   bot.on("callback_query", (ctx, next) => {
-    const callbackData = (ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data;
+    const callbackData = (ctx.callbackQuery as CallbackQuery).data as string;
     if (!callbackData.startsWith("tp--")) next();
     else ctx.answerCbQuery()
       .then(() => ctx.editMessageReplyMarkup(adjustTimePickerKeyboard(ctx, callbackData).reply_markup));

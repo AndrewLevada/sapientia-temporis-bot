@@ -3,7 +3,7 @@ import { ReplyKeyboardMarkup } from "typegram";
 import { logEvent, logPageView } from "../services/analytics-service";
 import { changeUserInfo } from "./user-info-change";
 import texts from "./texts";
-import { getAdminRole } from "../env";
+import { getAdminRole, isSummerBreak } from "../env";
 import { CustomContext, Telegraf } from "../app";
 import { getUserInfo } from "../services/user-service";
 
@@ -36,7 +36,10 @@ export function bindGeneral(bot: Telegraf) {
     logEvent(ctx, "start_command");
     ctx.reply(texts.res.general.start)
       .then(() => ctx.reply(texts.res.general.startTip))
-      .then(() => changeUserInfo(ctx as any));
+      .then(() => {
+        if (isSummerBreak) ctx.reply(texts.res.general.summer, Markup.removeKeyboard());
+        else changeUserInfo(ctx as any)
+      });
   });
 
   bot.help(ctx => {
@@ -44,9 +47,11 @@ export function bindGeneral(bot: Telegraf) {
     ctx.reply(texts.res.general.help);
   });
 
-  bot.on("text", ctx => {
-    // Summer blocker
-    ctx.reply(texts.res.general.summer);
+  // Summer blocker
+  bot.on("text", (ctx, next) => {
+    if (isSummerBreak && !getAdminRole(ctx.userId))
+      ctx.reply(texts.res.general.summer, Markup.removeKeyboard());
+    else next();
   });
 
   bot.command("/settings", ctx => replyWithSettings(ctx, true)); // For debug

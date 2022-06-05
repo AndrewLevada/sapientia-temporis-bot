@@ -1,4 +1,5 @@
 export const productionUrl = "https://sapientia-temporis-bot.herokuapp.com";
+export const isSummerBreak = true;
 
 interface AdminRole {
   username: string;

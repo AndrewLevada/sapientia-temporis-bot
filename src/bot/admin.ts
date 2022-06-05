@@ -1,5 +1,5 @@
 import { Markup } from "telegraf";
-import { CallbackQuery } from "typegram/callback";
+import { CallbackQuery } from "typegram";
 import { encodeGroup } from "../services/groups-service";
 import { BroadcastGroup, BroadcastGroupType, broadcastMessage } from "../services/broadcast-service";
 import { getAdminRoleFromUsername } from "../env";
@@ -58,7 +58,7 @@ export function bindAdmin(bot: Telegraf) {
   });
 
   bot.on("callback_query", (ctx, next) => {
-    if ((ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data === "broadcast_response") {
+    if ((ctx.callbackQuery as CallbackQuery).data === "broadcast_response") {
       logEvent(ctx, "broadcast_response");
       ctx.editMessageReplyMarkup(Markup.inlineKeyboard([
         [{ text: "❤️", callback_data: "ignore" }],

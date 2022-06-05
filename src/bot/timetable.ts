@@ -8,10 +8,13 @@ import { defaultKeyboard } from "./general";
 import { decodeGroup } from "../services/groups-service";
 import texts from "./texts";
 import { CustomContext, Telegraf } from "../app";
+import { isSummerBreak } from '../env';
 
 const deltaDayStrings = [texts.keys.default.yesterday, texts.keys.default.today, texts.keys.default.tomorrow];
 
 export function bindTimetable(bot: Telegraf) {
+  if (isSummerBreak) return;
+
   bot.hears(texts.keys.default.today, ctx => replyWithTimetableForDelta(ctx, 0));
   bot.hears(texts.keys.default.tomorrow, ctx => replyWithTimetableForDelta(ctx, 1));
   bot.hears(texts.keys.default.yesterday, ctx => replyWithTimetableForDelta(ctx, -1));

@@ -123,7 +123,7 @@ function bindBot(bot: Telegraf) {
     ctx.userId = userId;
 
     if (ctx.message) console.log(`message from ${userId}: ${(ctx.message as TextMessage).text}`);
-    else if (ctx.callbackQuery) console.log(`query from ${userId}: ${(ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data}`);
+    else if (ctx.callbackQuery) console.log(`query from ${userId}: ${(ctx.callbackQuery as CallbackQuery).data}`);
     else console.log(`use from ${userId}`);
 
     next().then();
@@ -144,7 +144,7 @@ function bindBot(bot: Telegraf) {
   });
 
   bot.on("callback_query", ctx => {
-    const text = (ctx.callbackQuery as CallbackQuery.DataCallbackQuery).data;
+    const text = (ctx.callbackQuery as CallbackQuery).data || "ignore";
     if (!text.startsWith("ignore")) logEvent(ctx, "unrecognized", { text });
     ctx.answerCbQuery();
   });
